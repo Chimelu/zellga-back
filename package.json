@@ -14,7 +14,7 @@
     "migration:revert": "npm run typeorm -- migration:revert -d src/infrastructure/database/data-source.ts"
   },
   "engines": {
-    "node": "20.x"
+    "node": "24.x"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
@@ -38,6 +38,6 @@
     "@types/node": "^26.1.1",
     "@vercel/node": "^5.9.3",
     "tsx": "^4.23.1",
-    "typescript": "^7.0.2"
+    "typescript": "^5.8.3"
   }
 }
