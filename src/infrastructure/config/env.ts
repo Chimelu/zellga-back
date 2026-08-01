@@ -19,8 +19,11 @@ const envSchema = z.object({
 const parsed = envSchema.safeParse(process.env);
 
 if (!parsed.success) {
-  console.error("Invalid environment variables:", parsed.error.flatten().fieldErrors);
-  process.exit(1);
+  const details = parsed.error.flatten().fieldErrors;
+  console.error("Invalid environment variables:", details);
+  throw new Error(
+    `Invalid environment variables: ${Object.keys(details).join(", ")}`
+  );
 }
 
 export const env = parsed.data;
