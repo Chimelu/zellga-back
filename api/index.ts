@@ -1,5 +1,5 @@
 import "reflect-metadata";
-import type { IncomingMessage, ServerResponse } from "http";
+import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { connectDatabase } from "../dist/infrastructure/database/data-source";
 import { createApp } from "../dist/infrastructure/http/create-app";
 
@@ -14,10 +14,7 @@ function ensureReady() {
   return ready;
 }
 
-export default async function handler(
-  req: IncomingMessage,
-  res: ServerResponse
-) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
   await ensureReady();
-  return app(req as never, res as never);
+  return app(req, res);
 }
