@@ -1,6 +1,5 @@
 import express from "express";
 import cors from "cors";
-import { env } from "../config/env";
 import { errorHandler } from "../../app/shared/http/http";
 import { buildAuthModule } from "../../app/auth/auth.module";
 import { buildProductsModule } from "../../app/products/products.module";
@@ -13,7 +12,7 @@ export function createApp() {
 
   app.use(
     cors({
-      origin: env.CORS_ORIGIN.split(",").map((o: string) => o.trim()),
+      origin: true,
       credentials: true,
     })
   );
