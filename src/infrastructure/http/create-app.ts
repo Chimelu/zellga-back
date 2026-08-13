@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import { errorHandler } from "../../app/shared/http/http";
+import { buildAdminModule } from "../../app/admin/admin.module";
 import { buildAuthModule } from "../../app/auth/auth.module";
 import { buildProductsModule } from "../../app/products/products.module";
 import { buildProfileModule } from "../../app/profile/profile.module";
@@ -28,12 +29,14 @@ export function createApp() {
   const stores = buildStoresModule();
   const profile = buildProfileModule();
   const uploads = buildUploadsModule();
+  const admin = buildAdminModule();
 
   app.use("/api/auth", auth.router);
   app.use("/api/products", products.router);
   app.use("/api/stores", stores.router);
   app.use("/api/profile", profile.router);
   app.use("/api/uploads", uploads.router);
+  app.use("/api/admin", admin.router);
 
   app.use(errorHandler);
 
