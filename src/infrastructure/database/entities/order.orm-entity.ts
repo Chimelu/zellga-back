@@ -57,6 +57,27 @@ export class OrderOrmEntity {
   @Column({ type: "text", nullable: true })
   note!: string | null;
 
+  /**
+   * Affiliate credited with this order, resolved from the `ref` code on the
+   * store link the buyer arrived through. Null for direct orders.
+   */
+  @Index()
+  @Column({ name: "affiliate_id", type: "uuid", nullable: true })
+  affiliateId!: string | null;
+
+  /**
+   * Commission owed on this order, frozen at creation time from the rate then
+   * in force. Recomputing later would silently restate what was earned.
+   */
+  @Column({
+    name: "commission_amount",
+    type: "numeric",
+    precision: 12,
+    scale: 2,
+    default: 0,
+  })
+  commissionAmount!: string;
+
   @CreateDateColumn({ name: "created_at", type: "timestamptz" })
   createdAt!: Date;
 

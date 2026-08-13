@@ -3,6 +3,7 @@ import type { ProfileService } from "../services/profile.service";
 import type {
   ChangePasswordDto,
   UpdateAccountDto,
+  UpdatePayoutDto,
   UpdateSettingsDto,
   UpdateStoreDetailsDto,
 } from "../dto/profile.dto";
@@ -24,6 +25,12 @@ export class ProfileController {
   updateAccount = async (req: Request, res: Response): Promise<void> => {
     const body = req.body as UpdateAccountDto;
     const data = await this.profileService.updateAccount(req.user!.id, body);
+    res.status(200).json({ success: true, data });
+  };
+
+  updatePayout = async (req: Request, res: Response): Promise<void> => {
+    const body = req.body as UpdatePayoutDto;
+    const data = await this.profileService.updatePayout(req.user!.id, body);
     res.status(200).json({ success: true, data });
   };
 

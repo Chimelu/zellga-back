@@ -16,10 +16,35 @@ export const updateStoreDetailsValidator = z.object({
 export const updateAccountValidator = z.object({
   name: z.string().trim().min(2, "Name is required").max(120).optional(),
   phone: z.string().trim().min(10, "Valid WhatsApp number required").max(20).optional(),
+  email: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Enter a valid email address")
+    .max(160)
+    .nullable()
+    .optional(),
+});
+
+/** Nigerian NUBAN account numbers are exactly 10 digits. */
+export const updatePayoutValidator = z.object({
+  bankName: z.string().trim().max(120).nullable().optional(),
+  accountNumber: z
+    .string()
+    .trim()
+    .regex(/^\d{10}$/, "Account number must be 10 digits")
+    .nullable()
+    .optional(),
+  accountName: z.string().trim().max(120).nullable().optional(),
 });
 
 export const updateSettingsValidator = z.object({
   defaultCheckoutMode: z.enum(["whatsapp", "platform"]).optional(),
+  affiliateCommissionPercent: z
+    .number()
+    .min(0, "Commission cannot be negative")
+    .max(100, "Commission cannot exceed 100%")
+    .optional(),
 });
 
 const changePasswordSchema = z.object({

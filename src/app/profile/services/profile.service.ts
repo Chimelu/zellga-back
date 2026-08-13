@@ -15,6 +15,7 @@ import type {
   BusinessProfileDto,
   ChangePasswordDto,
   UpdateAccountDto,
+  UpdatePayoutDto,
   UpdateSettingsDto,
   UpdateStoreDetailsDto,
 } from "../dto/profile.dto";
@@ -45,6 +46,8 @@ export class ProfileService {
         id: user.id,
         name: user.name,
         phone: user.phone,
+        email: user.email,
+        role: user.role,
       },
       store: {
         id: store.id,
@@ -54,8 +57,15 @@ export class ProfileService {
         description: store.description,
         link: `zellga.com/${store.slug}`,
       },
+      payout: {
+        bankName: user.bankName,
+        accountNumber: user.bankAccountNumber,
+        accountName: user.bankAccountName,
+        complete: user.hasPayoutAccount,
+      },
       settings: {
         defaultCheckoutMode: store.defaultCheckoutMode,
+        affiliateCommissionPercent: store.affiliateCommissionPercent,
       },
     };
   }
@@ -128,6 +138,45 @@ export class ProfileService {
       }
     }
 
+    if (input.email !== undefined) {
+      const email = input.email === null ? null : input.email.trim().toLowerCase();
+      if (email && email !== user.email) {
+        const existing = await this.users.findByEmail(email);
+        if (existing && existing.id !== user.id) {
+          throw new ConflictError(
+            "Another account already uses this email",
+            "EMAIL_TAKEN"
+          );
+        }
+      }
+      user.email = email || null;
+    }
+
+    user.updatedAt = new Date();
+    const savedUser = await this.users.save(user);
+    return this.toDto(savedUser, store);
+  }
+
+  /**
+   * Bank fields are independent: sending one leaves the others untouched, and
+   * an empty string clears a field rather than storing "".
+   */
+  async updatePayout(
+    userId: string,
+    input: UpdatePayoutDto
+  ): Promise<BusinessProfileDto> {
+    const { user, store } = await this.loadProfile(userId);
+
+    if (input.bankName !== undefined) {
+      user.bankName = input.bankName?.trim() || null;
+    }
+    if (input.accountNumber !== undefined) {
+      user.bankAccountNumber = input.accountNumber?.trim() || null;
+    }
+    if (input.accountName !== undefined) {
+      user.bankAccountName = input.accountName?.trim() || null;
+    }
+
     user.updatedAt = new Date();
     const savedUser = await this.users.save(user);
     return this.toDto(savedUser, store);
@@ -151,6 +200,10 @@ export class ProfileService {
           await this.products.save(product);
         }
       }
+    }
+
+    if (input.affiliateCommissionPercent !== undefined) {
+      store.affiliateCommissionPercent = input.affiliateCommissionPercent;
     }
 
     store.updatedAt = new Date();

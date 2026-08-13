@@ -43,6 +43,19 @@ export class StoreOrmEntity {
   })
   defaultCheckoutMode!: "whatsapp" | "platform";
 
+  /**
+   * Share of each attributed order paid to the affiliate who brought it in.
+   * Applies store-wide; 0 means the store is not recruiting affiliates.
+   */
+  @Column({
+    name: "affiliate_commission_percent",
+    type: "numeric",
+    precision: 5,
+    scale: 2,
+    default: 0,
+  })
+  affiliateCommissionPercent!: string;
+
   @CreateDateColumn({ name: "created_at", type: "timestamptz" })
   createdAt!: Date;
 

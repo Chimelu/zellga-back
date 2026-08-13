@@ -13,6 +13,7 @@ function toDomain(row: StoreOrmEntity): Store {
     category: row.category,
     description: row.description ?? null,
     defaultCheckoutMode: row.defaultCheckoutMode ?? "whatsapp",
+    affiliateCommissionPercent: Number(row.affiliateCommissionPercent ?? 0),
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   });
@@ -27,6 +28,7 @@ function toOrm(store: Store): StoreOrmEntity {
   row.category = store.category;
   row.description = store.description;
   row.defaultCheckoutMode = store.defaultCheckoutMode;
+  row.affiliateCommissionPercent = store.affiliateCommissionPercent.toFixed(2);
   row.createdAt = store.createdAt;
   row.updatedAt = store.updatedAt;
   return row;
@@ -46,6 +48,11 @@ export class TypeOrmStoreRepository implements StoreRepository {
 
   async findByOwnerId(ownerId: string): Promise<Store | null> {
     const row = await this.repo.findOne({ where: { ownerId } });
+    return row ? toDomain(row) : null;
+  }
+
+  async findById(id: string): Promise<Store | null> {
+    const row = await this.repo.findOne({ where: { id } });
     return row ? toDomain(row) : null;
   }
 

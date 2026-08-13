@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import { errorHandler } from "../../app/shared/http/http";
 import { buildAdminModule } from "../../app/admin/admin.module";
+import { buildAffiliatesModule } from "../../app/affiliates/affiliates.module";
 import { buildAuthModule } from "../../app/auth/auth.module";
 import { buildProductsModule } from "../../app/products/products.module";
 import { buildProfileModule } from "../../app/profile/profile.module";
@@ -26,7 +27,9 @@ export function createApp() {
 
   const auth = buildAuthModule();
   const products = buildProductsModule();
-  const stores = buildStoresModule();
+  const affiliates = buildAffiliatesModule();
+  // Checkout resolves ref codes through the same service the dashboard uses.
+  const stores = buildStoresModule(affiliates.service);
   const profile = buildProfileModule();
   const uploads = buildUploadsModule();
   const admin = buildAdminModule();
@@ -37,6 +40,7 @@ export function createApp() {
   app.use("/api/profile", profile.router);
   app.use("/api/uploads", uploads.router);
   app.use("/api/admin", admin.router);
+  app.use("/api/affiliates", affiliates.router);
 
   app.use(errorHandler);
 

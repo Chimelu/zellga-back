@@ -1,6 +1,10 @@
 import { Router } from "express";
 import { asyncHandler, validateBody } from "../shared/http/http";
-import { loginValidator, registerValidator } from "./validator";
+import {
+  acceptInviteValidator,
+  loginValidator,
+  registerValidator,
+} from "./validator";
 import type { AuthController } from "./controller/auth.controller";
 
 export function createAuthRouter(controller: AuthController): Router {
@@ -16,6 +20,15 @@ export function createAuthRouter(controller: AuthController): Router {
     "/login",
     validateBody(loginValidator),
     asyncHandler(controller.login)
+  );
+
+  // Unauthenticated: the recipient has no account until they accept.
+  router.get("/invite/:token", asyncHandler(controller.previewInvite));
+
+  router.post(
+    "/invite/accept",
+    validateBody(acceptInviteValidator),
+    asyncHandler(controller.acceptInvite)
   );
 
   return router;

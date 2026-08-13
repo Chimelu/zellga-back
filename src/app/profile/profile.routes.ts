@@ -6,6 +6,7 @@ import type { ProfileController } from "./controller/profile.controller";
 import {
   changePasswordValidator,
   updateAccountValidator,
+  updatePayoutValidator,
   updateSettingsValidator,
   updateStoreDetailsValidator,
 } from "./validator";
@@ -31,6 +32,12 @@ export function createProfileRouter(
     "/account",
     validateBody(updateAccountValidator),
     asyncHandler(controller.updateAccount)
+  );
+
+  router.patch(
+    "/payout",
+    validateBody(updatePayoutValidator),
+    asyncHandler(controller.updatePayout)
   );
 
   router.patch(
