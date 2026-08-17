@@ -18,9 +18,18 @@ export const userListQueryValidator = z.object({
   pageSize,
 });
 
+const orderStatus = z.enum([
+  "new",
+  "contacted",
+  "confirmed",
+  "processing",
+  "completed",
+  "cancelled",
+]);
+
 export const orderListQueryValidator = z.object({
   search,
-  status: z.enum(["pending", "paid", "fulfilled", "cancelled"]).optional(),
+  status: orderStatus.optional(),
   channel: z.enum(["whatsapp", "platform"]).optional(),
   sort: z.enum(["newest", "oldest", "highest", "lowest"]).default("newest"),
   page,
@@ -32,5 +41,5 @@ export const analyticsQueryValidator = z.object({
 });
 
 export const updateOrderStatusValidator = z.object({
-  status: z.enum(["pending", "paid", "fulfilled", "cancelled"]),
+  status: orderStatus,
 });

@@ -13,6 +13,7 @@ function toDomain(row: UserOrmEntity): User {
     role: row.role,
     passwordHash: row.passwordHash,
     bankName: row.bankName,
+    bankCode: row.bankCode ?? null,
     bankAccountNumber: row.bankAccountNumber,
     bankAccountName: row.bankAccountName,
     createdAt: row.createdAt,
@@ -29,6 +30,7 @@ function toOrm(user: User): UserOrmEntity {
   row.role = user.role;
   row.passwordHash = user.passwordHash;
   row.bankName = user.bankName;
+  row.bankCode = user.bankCode;
   row.bankAccountNumber = user.bankAccountNumber;
   row.bankAccountName = user.bankAccountName;
   row.createdAt = user.createdAt;

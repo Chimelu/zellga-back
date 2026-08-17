@@ -3,7 +3,10 @@ import {
   NotFoundError,
   ValidationError,
 } from "../../../core/errors/app.error";
-import { Order, buildOrderReference } from "../../../core/models/order.model";
+import {
+  buildWhatsAppLink,
+  buildWhatsAppOrderMessage,
+} from "../../../core/utils/whatsapp";
 import type { OrderRepository } from "../../../core/repositories/order.repository";
 import type { ProductRepository } from "../../../core/repositories/product.repository";
 import type { StoreRepository } from "../../../core/repositories/store.repository";
@@ -79,6 +82,12 @@ export class StoresService {
       throw new NotFoundError("Store not found");
     }
 
+    // Needed for the WhatsApp handoff — the buyer messages the seller direct.
+    const owner = await this.users.findById(store.ownerId);
+    if (!owner) {
+      throw new NotFoundError("Store not found");
+    }
+
     const catalogue = await this.products.findVisibleByStoreId(store.id);
     const byId = new Map(catalogue.map((product) => [product.id, product]));
 
@@ -103,32 +112,83 @@ export class StoresService {
     const affiliate = await this.affiliates.resolveReferral(store.id, input.ref);
     const commissionAmount = affiliate ? affiliate.commissionOn(total) : 0;
 
-    const now = new Date();
-    const saved = await this.orders.save(
-      new Order({
-        id: randomUUID(),
-        reference: buildOrderReference(randomUUID().replace(/-/g, "")),
-        storeId: store.id,
-        buyerName: input.buyerName.trim(),
-        buyerPhone: input.buyerPhone.trim(),
-        items: lines,
-        total,
-        channel: store.defaultCheckoutMode,
-        status: "pending",
-        note: input.note?.trim() || null,
-        affiliateId: affiliate?.id ?? null,
-        commissionAmount,
-        createdAt: now,
-        updatedAt: now,
-      })
+    /**
+     * The seller sets the payment method per item, so the order follows what
+     * was actually ordered. A basket holding any pay-on-platform item is paid
+     * on the platform — falling back to WhatsApp would skip collecting money
+     * for that item. The store default only covers an empty catalogue lookup,
+     * since every product carries its own mode.
+     */
+    const modes = lines.map(
+      (line) => byId.get(line.productId ?? "")?.checkoutMode
     );
+    const channel: "whatsapp" | "platform" = modes.some(
+      (mode) => mode === "platform"
+    )
+      ? "platform"
+      : modes.some((mode) => mode === "whatsapp")
+        ? "whatsapp"
+        : store.defaultCheckoutMode;
+
+    const buyerEmail = input.buyerEmail?.trim().toLowerCase() || null;
+    if (channel === "platform" && !buyerEmail) {
+      throw new ValidationError("An email is required to pay on Zellga");
+    }
+
+    const now = new Date();
+    // `create` allocates the store's next order number inside the insert.
+    const saved = await this.orders.create({
+      id: randomUUID(),
+      storeId: store.id,
+      buyerName: input.buyerName.trim(),
+      buyerPhone: input.buyerPhone.trim(),
+      buyerEmail,
+      items: lines,
+      total,
+      channel,
+      status: "new",
+      note: input.note?.trim() || null,
+      affiliateId: affiliate?.id ?? null,
+      commissionAmount,
+      // Nothing has been collected yet; the payment endpoints own these from
+      // here on. WhatsApp orders stay `unpaid` until the seller confirms the
+      // money arrived, or the buyer pays on the platform.
+      paymentStatus: "unpaid",
+      paymentProvider: null,
+      paymentReference: null,
+      paymentChannel: null,
+      amountPaid: 0,
+      paidAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    /**
+     * Built here rather than in the browser so the reference the buyer sends
+     * always names an order that exists. The seller's own number is the
+     * destination — buyers message the store, not the platform.
+     */
+    const whatsappUrl =
+      saved.channel === "whatsapp"
+        ? buildWhatsAppLink(
+            owner.phone,
+            buildWhatsAppOrderMessage(saved, store.name)
+          )
+        : null;
 
     return {
       id: saved.id,
+      orderNumber: saved.orderNumber,
       reference: saved.reference,
       total: saved.total,
       itemCount: saved.itemCount,
       status: saved.status,
+      channel: saved.channel,
+      paymentStatus: saved.paymentStatus,
+      /** Tells the storefront whether to call the initialize-payment endpoint. */
+      paymentRequired: saved.channel === "platform",
+      /** Ready-made `wa.me` link for a WhatsApp order; null for card checkout. */
+      whatsappUrl,
       createdAt: saved.createdAt.toISOString(),
       attributed: Boolean(saved.affiliateId),
     };

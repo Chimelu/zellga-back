@@ -17,6 +17,8 @@ export type BusinessProfileDto = {
   /** Where the seller is paid out. Null fields mean it has not been set up yet. */
   payout: {
     bankName: string | null;
+    /** Paystack bank code, needed to actually send a transfer. */
+    bankCode: string | null;
     accountNumber: string | null;
     accountName: string | null;
     /** True once all three fields are present. */
@@ -32,6 +34,7 @@ export type BusinessProfileDto = {
 
 export type UpdatePayoutDto = {
   bankName?: string | null;
+  bankCode?: string | null;
   accountNumber?: string | null;
   accountName?: string | null;
 };

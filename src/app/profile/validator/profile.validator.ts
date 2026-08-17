@@ -29,6 +29,7 @@ export const updateAccountValidator = z.object({
 /** Nigerian NUBAN account numbers are exactly 10 digits. */
 export const updatePayoutValidator = z.object({
   bankName: z.string().trim().max(120).nullable().optional(),
+  bankCode: z.string().trim().max(10).nullable().optional(),
   accountNumber: z
     .string()
     .trim()

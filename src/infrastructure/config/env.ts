@@ -18,6 +18,20 @@ const envSchema = z.object({
   APP_URL: z.string().url().default("http://localhost:3000"),
 
   /**
+   * Paystack is optional at boot so the app still starts without payment
+   * credentials — WhatsApp checkout does not need them. Card checkout throws a
+   * clear error at call time instead, see `PaystackGateway`.
+   */
+  PAYSTACK_SECRET_KEY: z.string().min(1).optional(),
+  PAYSTACK_PUBLIC_KEY: z.string().min(1).optional(),
+  PAYSTACK_BASE_URL: z.string().url().default("https://api.paystack.co"),
+  /**
+   * Where Paystack sends the buyer after checkout. The order reference is
+   * appended as a query param so the page can poll for the final status.
+   */
+  PAYSTACK_CALLBACK_URL: z.string().url().optional(),
+
+  /**
    * SMTP is optional. With no SMTP_HOST the app falls back to a console
    * transport that prints the message instead of sending it, so invite flows
    * are testable locally without mail credentials.

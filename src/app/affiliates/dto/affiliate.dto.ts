@@ -1,3 +1,8 @@
+import type {
+  OrderStatus,
+  PaymentStatus,
+} from "../../../core/models/order.model";
+
 export type AffiliateEarningsDto = {
   orders: number;
   revenue: number;
@@ -88,7 +93,9 @@ export type AffiliateSaleDto = {
   itemCount: number;
   total: number;
   commission: number;
-  status: "pending" | "paid" | "fulfilled" | "cancelled";
+  status: OrderStatus;
+  /** Commission is only really owed once this reads `paid`. */
+  paymentStatus: PaymentStatus;
   createdAt: string;
 };
 

@@ -39,6 +39,10 @@ export class UserOrmEntity {
   @Column({ name: "bank_name", type: "varchar", length: 120, nullable: true })
   bankName!: string | null;
 
+  /** Paystack bank code, stored alongside the name so payouts can be made. */
+  @Column({ name: "bank_code", type: "varchar", length: 10, nullable: true })
+  bankCode!: string | null;
+
   @Column({
     name: "bank_account_number",
     type: "varchar",

@@ -1,3 +1,5 @@
+import type { OrderStatus, PaymentStatus } from "../models/order.model";
+
 export type Paginated<T> = {
   items: T[];
   total: number;
@@ -41,7 +43,9 @@ export type AdminOrderRow = {
   itemCount: number;
   total: number;
   channel: "whatsapp" | "platform";
-  status: "pending" | "paid" | "fulfilled" | "cancelled";
+  status: OrderStatus;
+  /** What the money did, tracked apart from the fulfilment `status`. */
+  paymentStatus: PaymentStatus;
   note: string | null;
   createdAt: Date;
   store: { id: string; name: string; slug: string; ownerName: string } | null;
@@ -49,7 +53,7 @@ export type AdminOrderRow = {
 
 export type AdminOrderListQuery = {
   search?: string;
-  status?: "pending" | "paid" | "fulfilled" | "cancelled";
+  status?: OrderStatus;
   channel?: "whatsapp" | "platform";
   sort: "newest" | "oldest" | "highest" | "lowest";
   page: number;

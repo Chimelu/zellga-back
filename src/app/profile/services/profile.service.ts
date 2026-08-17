@@ -59,6 +59,7 @@ export class ProfileService {
       },
       payout: {
         bankName: user.bankName,
+        bankCode: user.bankCode,
         accountNumber: user.bankAccountNumber,
         accountName: user.bankAccountName,
         complete: user.hasPayoutAccount,
@@ -169,6 +170,9 @@ export class ProfileService {
 
     if (input.bankName !== undefined) {
       user.bankName = input.bankName?.trim() || null;
+    }
+    if (input.bankCode !== undefined) {
+      user.bankCode = input.bankCode?.trim() || null;
     }
     if (input.accountNumber !== undefined) {
       user.bankAccountNumber = input.accountNumber?.trim() || null;

@@ -65,6 +65,7 @@ type OrderRaw = {
   total: string;
   channel: AdminOrderRow["channel"];
   status: AdminOrderRow["status"];
+  payment_status: AdminOrderRow["paymentStatus"] | null;
   note: string | null;
   created_at: Date;
   store_id: string | null;
@@ -110,6 +111,7 @@ function toOrderRow(raw: OrderRaw): AdminOrderRow {
     total: num(raw.total),
     channel: raw.channel,
     status: raw.status,
+    paymentStatus: raw.payment_status ?? "unpaid",
     note: raw.note,
     createdAt: raw.created_at,
     store: raw.store_id
@@ -301,7 +303,7 @@ export class TypeOrmAdminRepository implements AdminRepository {
 
       const raws = (await this.ds.query(
         `SELECT o.id, o.reference, o.buyer_name, o.buyer_phone, o.items,
-                o.total, o.channel, o.status, o.note, o.created_at,
+                o.total, o.channel, o.status, o.payment_status, o.note, o.created_at,
                 s.id AS store_id, s.name AS store_name, s.slug AS store_slug,
                 u.name AS owner_name
            FROM orders o
@@ -327,7 +329,7 @@ export class TypeOrmAdminRepository implements AdminRepository {
     return whenOrdersExist(async () => {
       const raws = (await this.ds.query(
         `SELECT o.id, o.reference, o.buyer_name, o.buyer_phone, o.items,
-                o.total, o.channel, o.status, o.note, o.created_at,
+                o.total, o.channel, o.status, o.payment_status, o.note, o.created_at,
                 s.id AS store_id, s.name AS store_name, s.slug AS store_slug,
                 u.name AS owner_name
            FROM orders o

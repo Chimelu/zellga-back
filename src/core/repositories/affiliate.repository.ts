@@ -2,6 +2,7 @@ import type {
   Affiliate,
   AffiliateInvite,
 } from "../models/affiliate.model";
+import type { OrderStatus, PaymentStatus } from "../models/order.model";
 
 /** Aggregated earnings for one affiliate, computed from attributed orders. */
 export type AffiliateEarnings = {
@@ -10,9 +11,9 @@ export type AffiliateEarnings = {
   revenue: number;
   /** Commission across all attributed orders, regardless of status. */
   commission: number;
-  /** Commission on orders that reached `paid` or `fulfilled`. */
+  /** Commission on orders whose payment has settled — what is really owed. */
   confirmedCommission: number;
-  /** Commission still on `pending` orders. */
+  /** Commission on orders that have not been paid for yet. */
   pendingCommission: number;
 };
 
@@ -23,7 +24,8 @@ export type AffiliateSale = {
   itemCount: number;
   total: number;
   commission: number;
-  status: "pending" | "paid" | "fulfilled" | "cancelled";
+  status: OrderStatus;
+  paymentStatus: PaymentStatus;
   createdAt: Date;
 };
 

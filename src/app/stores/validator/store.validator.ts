@@ -7,6 +7,16 @@ export const createOrderValidator = z.object({
     .trim()
     .min(10, "Valid WhatsApp number required")
     .max(20),
+  /**
+   * Optional here because WhatsApp checkout does not need one; the service
+   * rejects a platform-paid order that arrives without it.
+   */
+  buyerEmail: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .email("Enter a valid email")
+    .optional(),
   items: z
     .array(
       z.object({

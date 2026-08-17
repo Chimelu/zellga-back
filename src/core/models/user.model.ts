@@ -3,6 +3,8 @@ export type UserRole = "seller" | "affiliate";
 /** Bank details a payout (seller earnings or affiliate commission) is sent to. */
 export type PayoutAccount = {
   bankName: string | null;
+  /** Paystack bank code — transfers key on this, not the display name. */
+  bankCode: string | null;
   bankAccountNumber: string | null;
   bankAccountName: string | null;
 };
@@ -15,6 +17,8 @@ export type UserProps = {
   role: UserRole;
   passwordHash: string;
   bankName: string | null;
+  /** Paystack bank code — transfers key on this, not the display name. */
+  bankCode: string | null;
   bankAccountNumber: string | null;
   bankAccountName: string | null;
   createdAt: Date;
@@ -29,6 +33,8 @@ export class User {
   role: UserRole;
   passwordHash: string;
   bankName: string | null;
+  /** Paystack bank code — transfers key on this, not the display name. */
+  bankCode: string | null;
   bankAccountNumber: string | null;
   bankAccountName: string | null;
   readonly createdAt: Date;
@@ -42,6 +48,7 @@ export class User {
     this.role = props.role;
     this.passwordHash = props.passwordHash;
     this.bankName = props.bankName;
+    this.bankCode = props.bankCode;
     this.bankAccountNumber = props.bankAccountNumber;
     this.bankAccountName = props.bankAccountName;
     this.createdAt = props.createdAt;

@@ -106,8 +106,9 @@ export class TypeOrmAffiliateRepository implements AffiliateRepository {
 
   /**
    * Cancelled orders are excluded everywhere: they earn nothing. "Confirmed"
-   * means the order reached paid or fulfilled; anything still pending is
-   * reported separately so an affiliate can tell banked from expected.
+   * now keys on payment rather than fulfilment, so a WhatsApp sale the seller
+   * marked paid earns commission just like a card sale — and an order merely
+   * moved to `processing` does not.
    */
   async earningsFor(
     affiliateIds: string[]
@@ -126,11 +127,11 @@ export class TypeOrmAffiliateRepository implements AffiliateRepository {
       .addSelect("COALESCE(SUM(o.total), 0)", "revenue")
       .addSelect("COALESCE(SUM(o.commission_amount), 0)", "commission")
       .addSelect(
-        "COALESCE(SUM(CASE WHEN o.status IN ('paid','fulfilled') THEN o.commission_amount ELSE 0 END), 0)",
+        "COALESCE(SUM(o.commission_amount) FILTER (WHERE o.payment_status = 'paid'), 0)",
         "confirmedCommission"
       )
       .addSelect(
-        "COALESCE(SUM(CASE WHEN o.status = 'pending' THEN o.commission_amount ELSE 0 END), 0)",
+        "COALESCE(SUM(o.commission_amount) FILTER (WHERE o.payment_status <> 'paid'), 0)",
         "pendingCommission"
       )
       .where("o.affiliate_id IN (:...affiliateIds)", { affiliateIds })
@@ -185,6 +186,7 @@ export class TypeOrmAffiliateRepository implements AffiliateRepository {
         total: Number(row.total ?? 0),
         commission: Number(row.commissionAmount ?? 0),
         status: row.status,
+        paymentStatus: row.paymentStatus ?? "unpaid",
         createdAt: row.createdAt,
       })),
       total,
