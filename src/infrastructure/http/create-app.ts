@@ -4,6 +4,7 @@ import { errorHandler } from "../../app/shared/http/http";
 import { captureRawBody } from "../../app/shared/http/raw-body";
 import { buildAdminModule } from "../../app/admin/admin.module";
 import { buildAffiliatesModule } from "../../app/affiliates/affiliates.module";
+import { buildAnalyticsModule } from "../../app/analytics/analytics.module";
 import { buildAuthModule } from "../../app/auth/auth.module";
 import { buildOrdersModule } from "../../app/orders/orders.module";
 import { buildPaymentsModule } from "../../app/payments/payments.module";
@@ -40,6 +41,7 @@ export function createApp() {
   const admin = buildAdminModule();
   const orders = buildOrdersModule();
   const payments = buildPaymentsModule();
+  const analytics = buildAnalyticsModule();
 
   app.use("/api/auth", auth.router);
   app.use("/api/products", products.router);
@@ -51,6 +53,8 @@ export function createApp() {
   // Seller-facing order list; buyer-facing payment start, verify and webhook.
   app.use("/api/orders", orders.router);
   app.use("/api/payments", payments.router);
+  // Public storefront tracking + the seller's own analytics.
+  app.use("/api/analytics", analytics.router);
 
   app.use(errorHandler);
 

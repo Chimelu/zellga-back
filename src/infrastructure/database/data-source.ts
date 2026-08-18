@@ -4,6 +4,7 @@ import { UserOrmEntity } from "./entities/user.orm-entity";
 import { StoreOrmEntity } from "./entities/store.orm-entity";
 import { ProductOrmEntity } from "./entities/product.orm-entity";
 import { OrderOrmEntity } from "./entities/order.orm-entity";
+import { StoreEventOrmEntity } from "./entities/store-event.orm-entity";
 import { AffiliateOrmEntity } from "./entities/affiliate.orm-entity";
 import { AffiliateInviteOrmEntity } from "./entities/affiliate-invite.orm-entity";
 
@@ -18,6 +19,7 @@ export const AppDataSource = new DataSource({
     StoreOrmEntity,
     ProductOrmEntity,
     OrderOrmEntity,
+    StoreEventOrmEntity,
     AffiliateOrmEntity,
     AffiliateInviteOrmEntity,
   ],
