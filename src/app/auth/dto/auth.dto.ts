@@ -54,3 +54,28 @@ export type AuthResponseDto = {
   user: AuthUserDto;
   store: AuthStoreDto | null;
 };
+
+export type ForgotPasswordDto = {
+  email: string;
+};
+
+/**
+ * Deliberately identical whether or not the address has an account — the
+ * endpoint must not become a way to discover who is on Zellga.
+ */
+export type ForgotPasswordResponseDto = {
+  sent: true;
+  message: string;
+};
+
+/** Lets the reset page tell a dead link from a live one before asking for a password. */
+export type ResetTokenPreviewDto = {
+  valid: boolean;
+  email: string;
+  expiresAt: string;
+};
+
+export type ResetPasswordDto = {
+  token: string;
+  password: string;
+};

@@ -4,6 +4,11 @@ import {
   type ProductMediaItem,
 } from "../../../core/models/product.model";
 import {
+  defaultCheckoutModeFor,
+  listingPriceFor,
+  type OfferDetails,
+} from "../../../core/models/offer.model";
+import {
   ForbiddenError,
   NotFoundError,
 } from "../../../core/errors/app.error";
@@ -29,6 +34,9 @@ function toDto(product: Product): ProductResponseDto {
     available: product.available,
     category: product.category,
     checkoutMode: product.checkoutMode,
+    offerType: product.offerType,
+    subtype: product.subtype,
+    details: product.details,
     createdAt: product.createdAt.toISOString(),
     updatedAt: product.updatedAt.toISOString(),
   };
@@ -84,19 +92,34 @@ export class ProductsService {
     const now = new Date();
     const media = normalizeMedia(input.media);
     const cover = media[0] ?? null;
+    const offerType = input.offerType ?? "physical";
+    const details = (input.details ?? {}) as OfferDetails;
 
     const product = new Product({
       id: randomUUID(),
       storeId: store.id,
       name: input.name.trim(),
-      price: input.price,
+      // Events price through their tiers, so the listing price is derived
+      // rather than typed — see `listingPriceFor`.
+      price: listingPriceFor(offerType, input.price, details),
       description: input.description?.trim() || null,
       imageUrl: cover?.url ?? null,
       imagePublicId: cover?.publicId ?? null,
       media,
       available: input.available ?? true,
       category: input.category?.trim() || null,
-      checkoutMode: input.checkoutMode ?? store.defaultCheckoutMode ?? "whatsapp",
+      /**
+       * The type decides the default: digital, ticket and membership sales are
+       * paid on the platform because access has to follow the money. An
+       * explicit choice from the seller still wins.
+       */
+      checkoutMode:
+        input.checkoutMode ??
+        defaultCheckoutModeFor(offerType) ??
+        store.defaultCheckoutMode,
+      offerType,
+      subtype: input.subtype?.trim() || null,
+      details,
       createdAt: now,
       updatedAt: now,
     });
@@ -124,6 +147,25 @@ export class ProductsService {
     }
     if (input.checkoutMode !== undefined) {
       product.checkoutMode = input.checkoutMode;
+    }
+    if (input.offerType !== undefined) product.offerType = input.offerType;
+    if (input.subtype !== undefined) {
+      product.subtype = input.subtype?.trim() || null;
+    }
+    if (input.details !== undefined) {
+      product.details = input.details as OfferDetails;
+    }
+    // Either half can move the derived price, so it is recomputed from both.
+    if (
+      input.price !== undefined ||
+      input.details !== undefined ||
+      input.offerType !== undefined
+    ) {
+      product.price = listingPriceFor(
+        product.offerType,
+        input.price ?? product.price,
+        product.details
+      );
     }
 
     if (input.media !== undefined) {

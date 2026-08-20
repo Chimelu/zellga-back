@@ -2,8 +2,10 @@ import { Request, Response } from "express";
 import type { AuthService } from "../services/auth.service";
 import type {
   AcceptInviteDto,
+  ForgotPasswordDto,
   LoginDto,
   RegisterDto,
+  ResetPasswordDto,
 } from "../dto/auth.dto";
 
 export class AuthController {
@@ -18,6 +20,26 @@ export class AuthController {
   login = async (req: Request, res: Response): Promise<void> => {
     const body = req.body as LoginDto;
     const data = await this.authService.login(body);
+    res.status(200).json({ success: true, data });
+  };
+
+  forgotPassword = async (req: Request, res: Response): Promise<void> => {
+    const body = req.body as ForgotPasswordDto;
+    const data = await this.authService.requestPasswordReset(body);
+    res.status(200).json({ success: true, data });
+  };
+
+  // Unauthenticated: the whole point is that the caller cannot log in.
+  previewResetToken = async (req: Request, res: Response): Promise<void> => {
+    const data = await this.authService.previewResetToken(
+      String(req.params.token)
+    );
+    res.status(200).json({ success: true, data });
+  };
+
+  resetPassword = async (req: Request, res: Response): Promise<void> => {
+    const body = req.body as ResetPasswordDto;
+    const data = await this.authService.resetPassword(body);
     res.status(200).json({ success: true, data });
   };
 

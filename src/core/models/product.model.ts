@@ -1,3 +1,5 @@
+import type { OfferDetails, OfferType } from "./offer.model";
+
 export type ProductMediaItem = {
   url: string;
   publicId: string;
@@ -17,6 +19,12 @@ export type ProductProps = {
   available: boolean;
   category: string | null;
   checkoutMode: "whatsapp" | "platform";
+  /** What kind of thing this is — see `OfferType`. */
+  offerType: OfferType;
+  /** Narrower kind within the type, e.g. `course` under `digital`. */
+  subtype: string | null;
+  /** Type-specific fields; shape follows `offerType`. */
+  details: OfferDetails;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -33,6 +41,9 @@ export class Product {
   available: boolean;
   category: string | null;
   checkoutMode: "whatsapp" | "platform";
+  offerType: OfferType;
+  subtype: string | null;
+  details: OfferDetails;
   readonly createdAt: Date;
   updatedAt: Date;
 
@@ -48,6 +59,9 @@ export class Product {
     this.available = props.available;
     this.category = props.category;
     this.checkoutMode = props.checkoutMode;
+    this.offerType = props.offerType;
+    this.subtype = props.subtype;
+    this.details = props.details;
     this.createdAt = props.createdAt;
     this.updatedAt = props.updatedAt;
   }

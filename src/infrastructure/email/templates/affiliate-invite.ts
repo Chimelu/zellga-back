@@ -1,4 +1,5 @@
 import type { MailMessage } from "../../../core/services/mailer";
+import { escapeHtml } from "./escape-html";
 
 export type AffiliateInviteEmailInput = {
   to: string;
@@ -10,15 +11,6 @@ export type AffiliateInviteEmailInput = {
   acceptUrl: string;
   expiresInDays: number;
 };
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
 
 export function affiliateInviteEmail(
   input: AffiliateInviteEmailInput

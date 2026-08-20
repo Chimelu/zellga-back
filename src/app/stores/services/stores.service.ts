@@ -64,6 +64,9 @@ export class StoresService {
         media: p.media.map((m) => ({ url: m.url, type: m.type })),
         category: p.category,
         checkoutMode: p.checkoutMode,
+        offerType: p.offerType,
+        subtype: p.subtype,
+        details: p.details,
       })),
     };
   }
@@ -122,13 +125,24 @@ export class StoresService {
     const modes = lines.map(
       (line) => byId.get(line.productId ?? "")?.checkoutMode
     );
-    const channel: "whatsapp" | "platform" = modes.some(
+    const chosenMode: "whatsapp" | "platform" = modes.some(
       (mode) => mode === "platform"
     )
       ? "platform"
       : modes.some((mode) => mode === "whatsapp")
         ? "whatsapp"
         : store.defaultCheckoutMode;
+
+    /**
+     * A referred sale is always paid on the platform, whatever the item's own
+     * mode says. Commission on a WhatsApp handoff rests on the seller
+     * remembering to confirm a transfer by hand — until they do, the affiliate
+     * has no proof they made the sale. Paystack settling the money is that
+     * proof, so the referral link is what decides the channel here.
+     */
+    const channel: "whatsapp" | "platform" = affiliate
+      ? "platform"
+      : chosenMode;
 
     const buyerEmail = input.buyerEmail?.trim().toLowerCase() || null;
     if (channel === "platform" && !buyerEmail) {

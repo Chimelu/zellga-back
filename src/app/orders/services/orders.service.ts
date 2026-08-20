@@ -4,6 +4,10 @@ import {
   ValidationError,
 } from "../../../core/errors/app.error";
 import type { Order } from "../../../core/models/order.model";
+import type {
+  AffiliateRepository,
+  AffiliateSummary,
+} from "../../../core/repositories/affiliate.repository";
 import type { OrderRepository } from "../../../core/repositories/order.repository";
 import type { StoreRepository } from "../../../core/repositories/store.repository";
 import type {
@@ -18,7 +22,8 @@ import type {
 export class OrdersService {
   constructor(
     private readonly orders: OrderRepository,
-    private readonly stores: StoreRepository
+    private readonly stores: StoreRepository,
+    private readonly affiliates: AffiliateRepository
   ) {}
 
   /**
@@ -33,7 +38,32 @@ export class OrdersService {
     return store;
   }
 
-  private toDto(order: Order): SellerOrderDto {
+  /**
+   * Names every affiliate behind a page of orders in one query, so a list of
+   * fifty referred orders is still a single lookup.
+   */
+  private async affiliateNames(
+    orders: Order[]
+  ): Promise<Map<string, AffiliateSummary>> {
+    const ids = [
+      ...new Set(
+        orders
+          .map((order) => order.affiliateId)
+          .filter((id): id is string => Boolean(id))
+      ),
+    ];
+    if (ids.length === 0) return new Map();
+    return this.affiliates.summariesFor(ids);
+  }
+
+  private toDto(
+    order: Order,
+    affiliates: Map<string, AffiliateSummary> = new Map()
+  ): SellerOrderDto {
+    const affiliate = order.affiliateId
+      ? affiliates.get(order.affiliateId) ?? null
+      : null;
+
     return {
       id: order.id,
       orderNumber: order.orderNumber,
@@ -56,6 +86,7 @@ export class OrdersService {
         paidAt: order.paidAt ? order.paidAt.toISOString() : null,
       },
       affiliateId: order.affiliateId,
+      affiliate,
       commissionAmount: order.commissionAmount,
       createdAt: order.createdAt.toISOString(),
       updatedAt: order.updatedAt.toISOString(),
@@ -68,9 +99,10 @@ export class OrdersService {
   ): Promise<SellerOrderListDto> {
     const store = await this.requireOwnedStore(userId);
     const page = await this.orders.listByStore(store.id, query);
+    const affiliates = await this.affiliateNames(page.items);
 
     return {
-      items: page.items.map((order) => this.toDto(order)),
+      items: page.items.map((order) => this.toDto(order, affiliates)),
       total: page.total,
       page: page.page,
       pageSize: page.pageSize,
@@ -90,7 +122,7 @@ export class OrdersService {
     if (!order || order.storeId !== store.id) {
       throw new NotFoundError("Order not found", "ORDER_NOT_FOUND");
     }
-    return this.toDto(order);
+    return this.toDto(order, await this.affiliateNames([order]));
   }
 
   private async requireOrder(userId: string, orderId: string) {
@@ -118,7 +150,7 @@ export class OrdersService {
     order.status = input.status;
     order.updatedAt = new Date();
     const saved = await this.orders.save(order);
-    return this.toDto(saved);
+    return this.toDto(saved, await this.affiliateNames([saved]));
   }
 
   /**
@@ -158,6 +190,6 @@ export class OrdersService {
     }
 
     const saved = await this.orders.save(order);
-    return this.toDto(saved);
+    return this.toDto(saved, await this.affiliateNames([saved]));
   }
 }

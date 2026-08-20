@@ -5,6 +5,7 @@ import {
 } from "../../../core/models/affiliate.model";
 import type {
   AffiliateEarnings,
+  AffiliateSummary,
   AffiliateInviteRepository,
   AffiliateRepository,
   AffiliateSalesPage,
@@ -110,6 +111,33 @@ export class TypeOrmAffiliateRepository implements AffiliateRepository {
    * marked paid earns commission just like a card sale — and an order merely
    * moved to `processing` does not.
    */
+  async summariesFor(
+    affiliateIds: string[]
+  ): Promise<Map<string, AffiliateSummary>> {
+    const result = new Map<string, AffiliateSummary>();
+    if (affiliateIds.length === 0) return result;
+
+    // The name lives on the user behind the affiliate, so this joins rather
+    // than making the caller resolve two repositories.
+    const rows = await this.repo
+      .createQueryBuilder("a")
+      .innerJoin("users", "u", "u.id = a.user_id")
+      .select("a.id", "id")
+      .addSelect("a.ref_code", "refCode")
+      .addSelect("u.name", "name")
+      .where("a.id IN (:...affiliateIds)", { affiliateIds })
+      .getRawMany<{ id: string; refCode: string; name: string }>();
+
+    for (const row of rows) {
+      result.set(row.id, {
+        id: row.id,
+        name: row.name,
+        refCode: row.refCode,
+      });
+    }
+    return result;
+  }
+
   async earningsFor(
     affiliateIds: string[]
   ): Promise<Map<string, AffiliateEarnings>> {

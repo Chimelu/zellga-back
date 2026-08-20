@@ -1,5 +1,6 @@
 import { randomUUID } from "crypto";
 import { User } from "../../../core/models/user.model";
+import { PasswordReset } from "../../../core/models/password-reset.model";
 import { Store } from "../../../core/models/store.model";
 import { Affiliate } from "../../../core/models/affiliate.model";
 import {
@@ -14,6 +15,8 @@ import type {
   AffiliateInviteRepository,
   AffiliateRepository,
 } from "../../../core/repositories/affiliate.repository";
+import type { PasswordResetRepository } from "../../../core/repositories/password-reset.repository";
+import type { Mailer } from "../../../core/services/mailer";
 import type { PasswordHasher } from "../../../core/services/password-hasher";
 import type { TokenService } from "../../../core/services/token.service";
 import {
@@ -21,17 +24,37 @@ import {
   slugifyStoreName,
 } from "../../../core/utils/identity";
 import { generateRefCode } from "../../../core/utils/ref-code";
+import {
+  generateSecureToken,
+  hashToken,
+} from "../../../core/utils/secure-token";
+import {
+  passwordChangedEmail,
+  passwordResetEmail,
+} from "../../../infrastructure/email/templates/password-reset";
 import type {
   AcceptInviteDto,
   AuthResponseDto,
+  ForgotPasswordDto,
+  ForgotPasswordResponseDto,
   InvitePreviewDto,
   LoginDto,
   RegisterDto,
+  ResetPasswordDto,
+  ResetTokenPreviewDto,
 } from "../dto/auth.dto";
 
 function looksLikeEmail(value: string): boolean {
   return value.includes("@");
 }
+
+/**
+ * A person who has genuinely lost their password needs one or two links, not
+ * ten. Anything past this in the window is dropped silently so the endpoint
+ * cannot be used to flood someone's inbox.
+ */
+const RESET_REQUESTS_PER_WINDOW = 3;
+const RESET_THROTTLE_WINDOW_MINUTES = 15;
 
 export class AuthService {
   constructor(
@@ -40,7 +63,12 @@ export class AuthService {
     private readonly hasher: PasswordHasher,
     private readonly tokens: TokenService,
     private readonly invites: AffiliateInviteRepository,
-    private readonly affiliates: AffiliateRepository
+    private readonly affiliates: AffiliateRepository,
+    private readonly resets: PasswordResetRepository,
+    private readonly mailer: Mailer,
+    /** Public web app the emailed reset link points back at. */
+    private readonly appUrl: string,
+    private readonly resetTtlMinutes: number
   ) {}
 
   async register(input: RegisterDto): Promise<AuthResponseDto> {
@@ -122,6 +150,152 @@ export class AuthService {
 
     const store = await this.stores.findByOwnerId(user.id);
     return this.authResponse(user, store);
+  }
+
+  /**
+   * Starts a password reset. The reply is the same whether or not the address
+   * has an account, so the endpoint cannot be used to enumerate users; the
+   * caller learns nothing beyond "we handled it".
+   */
+  async requestPasswordReset(
+    input: ForgotPasswordDto
+  ): Promise<ForgotPasswordResponseDto> {
+    const acknowledged: ForgotPasswordResponseDto = {
+      sent: true,
+      message:
+        "If an account exists for that email, a reset link is on its way.",
+    };
+
+    const email = input.email.trim().toLowerCase();
+    const user = await this.users.findByEmail(email);
+    if (!user || !user.email) return acknowledged;
+
+    const now = new Date();
+    const windowStart = new Date(
+      now.getTime() - RESET_THROTTLE_WINDOW_MINUTES * 60 * 1000
+    );
+    // Throttled requests return the same acknowledgement rather than a 429 —
+    // a distinguishable response here would give the enumeration away.
+    const recent = await this.resets.countCreatedSince(user.id, windowStart);
+    if (recent >= RESET_REQUESTS_PER_WINDOW) {
+      console.warn(`Password reset throttled for user ${user.id}`);
+      return acknowledged;
+    }
+
+    // Issuing a new link retires every earlier one, so only the latest works.
+    await this.resets.invalidateAllForUser(user.id, now);
+
+    const token = generateSecureToken();
+    const reset = new PasswordReset({
+      id: randomUUID(),
+      userId: user.id,
+      tokenHash: hashToken(token),
+      expiresAt: new Date(now.getTime() + this.resetTtlMinutes * 60 * 1000),
+      usedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+    const saved = await this.resets.save(reset);
+
+    try {
+      await this.mailer.send(
+        passwordResetEmail({
+          to: user.email,
+          name: user.name,
+          resetUrl: `${this.appUrl}/reset-password?token=${token}`,
+          expiresInMinutes: this.resetTtlMinutes,
+        })
+      );
+    } catch (err) {
+      // A link nobody received must not stay live. Surfacing the failure only
+      // happens for real accounts, but a silent success would leave the owner
+      // waiting on mail that is never coming.
+      console.error("Failed to send password reset email", err);
+      saved.usedAt = new Date();
+      saved.updatedAt = saved.usedAt;
+      await this.resets.save(saved);
+      throw new ConflictError(
+        "Could not send the reset email. Try again in a moment.",
+        "EMAIL_SEND_FAILED"
+      );
+    }
+
+    return acknowledged;
+  }
+
+  /** Lets the reset page show a dead link before asking for a new password. */
+  async previewResetToken(token: string): Promise<ResetTokenPreviewDto> {
+    const reset = await this.resets.findByTokenHash(hashToken(token));
+    if (!reset) {
+      throw new NotFoundError("This reset link is not valid", "RESET_INVALID");
+    }
+
+    const user = await this.users.findById(reset.userId);
+    if (!user) {
+      throw new NotFoundError("This reset link is not valid", "RESET_INVALID");
+    }
+
+    return {
+      valid: reset.isUsable(),
+      email: user.email ?? "",
+      expiresAt: reset.expiresAt.toISOString(),
+    };
+  }
+
+  /**
+   * Redeems a reset link. The token proves control of the mailbox, so the
+   * caller is signed in on success rather than being sent back to the login
+   * form to type a password they only just chose.
+   */
+  async resetPassword(input: ResetPasswordDto): Promise<AuthResponseDto> {
+    const reset = await this.resets.findByTokenHash(hashToken(input.token));
+    if (!reset) {
+      throw new NotFoundError("This reset link is not valid", "RESET_INVALID");
+    }
+    if (reset.usedAt) {
+      throw new ConflictError(
+        "This reset link has already been used",
+        "RESET_USED"
+      );
+    }
+    if (reset.isExpired()) {
+      throw new ConflictError("This reset link has expired", "RESET_EXPIRED");
+    }
+
+    const user = await this.users.findById(reset.userId);
+    if (!user) {
+      throw new NotFoundError("This reset link is not valid", "RESET_INVALID");
+    }
+
+    const now = new Date();
+    user.passwordHash = await this.hasher.hash(input.password);
+    user.updatedAt = now;
+    const savedUser = await this.users.save(user);
+
+    reset.usedAt = now;
+    reset.updatedAt = now;
+    await this.resets.save(reset);
+    // Anything else outstanding for this account dies with the reset too.
+    await this.resets.invalidateAllForUser(user.id, now);
+
+    // Best-effort: the password is already changed, and a failed notice must
+    // not turn a successful reset into an error the caller has to retry.
+    if (savedUser.email) {
+      try {
+        await this.mailer.send(
+          passwordChangedEmail({
+            to: savedUser.email,
+            name: savedUser.name,
+            supportUrl: `${this.appUrl}/forgot-password`,
+          })
+        );
+      } catch (err) {
+        console.error("Failed to send password changed notice", err);
+      }
+    }
+
+    const store = await this.stores.findByOwnerId(savedUser.id);
+    return this.authResponse(savedUser, store);
   }
 
   /** Powers the invite landing page before the recipient creates an account. */

@@ -16,7 +16,7 @@ export function createUploadsRouter(
 
   router.post(
     "/media",
-    productMediaUpload.array("media", 2),
+    productMediaUpload.array("media", 5),
     asyncHandler(controller.upload)
   );
 

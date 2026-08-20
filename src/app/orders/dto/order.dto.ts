@@ -34,6 +34,12 @@ export type SellerOrderDto = {
   };
   /** Present when an affiliate referred the sale. */
   affiliateId: string | null;
+  /** Who referred it, resolved for display. Null when nobody did. */
+  affiliate: {
+    id: string;
+    name: string;
+    refCode: string;
+  } | null;
   commissionAmount: number;
   createdAt: string;
   updatedAt: string;

@@ -17,6 +17,9 @@ function toDomain(row: ProductOrmEntity): Product {
     available: row.available,
     category: row.category,
     checkoutMode: row.checkoutMode,
+    offerType: row.offerType ?? "physical",
+    subtype: row.subtype ?? null,
+    details: row.details ?? {},
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   });
@@ -35,6 +38,9 @@ function toOrm(product: Product): ProductOrmEntity {
   row.available = product.available;
   row.category = product.category;
   row.checkoutMode = product.checkoutMode;
+  row.offerType = product.offerType;
+  row.subtype = product.subtype;
+  row.details = product.details;
   row.createdAt = product.createdAt;
   row.updatedAt = product.updatedAt;
   return row;

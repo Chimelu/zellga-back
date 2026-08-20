@@ -33,8 +33,8 @@ const envSchema = z.object({
 
   /**
    * SMTP is optional. With no SMTP_HOST the app falls back to a console
-   * transport that prints the message instead of sending it, so invite flows
-   * are testable locally without mail credentials.
+   * transport that prints the message instead of sending it, so invite and
+   * password-reset flows are testable locally without mail credentials.
    */
   SMTP_HOST: z.string().min(1).optional(),
   SMTP_PORT: z.coerce.number().default(587),
@@ -45,9 +45,24 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   MAIL_FROM: z.string().default("Zellga <no-reply@zellga.com>"),
+
+  /** How long an emailed password-reset link stays usable. */
+  PASSWORD_RESET_TTL_MINUTES: z.coerce.number().int().positive().default(60),
 });
 
-const parsed = envSchema.safeParse(process.env);
+/**
+ * Zoho names its credentials after the mailbox (ZOHO_EMAIL / ZOHO_PASSWORD) and
+ * documents the sender as SMTP_FROM. They are folded onto the generic SMTP
+ * fields here so nothing past this file has to know which provider is in use.
+ */
+const source = {
+  ...process.env,
+  SMTP_USER: process.env.SMTP_USER || process.env.ZOHO_EMAIL,
+  SMTP_PASS: process.env.SMTP_PASS || process.env.ZOHO_PASSWORD,
+  MAIL_FROM: process.env.MAIL_FROM || process.env.SMTP_FROM,
+};
+
+const parsed = envSchema.safeParse(source);
 
 if (!parsed.success) {
   const details = parsed.error.flatten().fieldErrors;

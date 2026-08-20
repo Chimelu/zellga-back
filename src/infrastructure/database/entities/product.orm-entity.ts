@@ -9,6 +9,10 @@ import {
   Index,
 } from "typeorm";
 import { StoreOrmEntity } from "./store.orm-entity";
+import type {
+  OfferDetails,
+  OfferType,
+} from "../../../core/models/offer.model";
 
 @Entity({ name: "products" })
 export class ProductOrmEntity {
@@ -50,6 +54,25 @@ export class ProductOrmEntity {
 
   @Column({ name: "checkout_mode", type: "varchar", length: 20, default: "whatsapp" })
   checkoutMode!: "whatsapp" | "platform";
+
+  /**
+   * What the seller is selling. Stores are not locked to one type — this is
+   * chosen per offer, so one store can hold a cake and a course.
+   */
+  @Column({ name: "offer_type", type: "varchar", length: 20, default: "physical" })
+  offerType!: OfferType;
+
+  /** Narrower kind within the type, e.g. `course` under `digital`. */
+  @Column({ type: "varchar", length: 40, nullable: true })
+  subtype!: string | null;
+
+  /**
+   * Type-specific fields — ticket tiers, availability windows, billing
+   * frequency. Kept as one document because the shape follows `offer_type`,
+   * and a column per type would leave most of them null on every row.
+   */
+  @Column({ type: "jsonb", default: {} })
+  details!: OfferDetails;
 
   @CreateDateColumn({ name: "created_at", type: "timestamptz" })
   createdAt!: Date;

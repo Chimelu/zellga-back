@@ -1,3 +1,5 @@
+import type { OfferDetails, OfferType } from "../../../core/models/offer.model";
+
 import type { OrderStatus } from "../../../core/models/order.model";
 
 export type PublicStoreDto = {
@@ -19,6 +21,9 @@ export type PublicProductDto = {
   media: { url: string; type: "image" | "video" }[];
   category: string | null;
   checkoutMode: "whatsapp" | "platform";
+  offerType: OfferType;
+  subtype: string | null;
+  details: OfferDetails;
 };
 
 export type CreateOrderItemDto = {

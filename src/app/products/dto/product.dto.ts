@@ -1,3 +1,5 @@
+import type { OfferDetails, OfferType } from "../../../core/models/offer.model";
+
 export type ProductMediaDto = {
   url: string;
   publicId: string;
@@ -12,6 +14,11 @@ export type CreateProductDto = {
   checkoutMode?: "whatsapp" | "platform";
   available?: boolean;
   media?: ProductMediaDto[];
+  /** Defaults to `physical`, which is all the catalogue held before types. */
+  offerType?: OfferType;
+  subtype?: string;
+  /** Type-specific fields; validated against the schema for `offerType`. */
+  details?: OfferDetails;
 };
 
 export type UpdateProductDto = {
@@ -21,6 +28,9 @@ export type UpdateProductDto = {
   category?: string | null;
   checkoutMode?: "whatsapp" | "platform";
   media?: ProductMediaDto[];
+  offerType?: OfferType;
+  subtype?: string;
+  details?: OfferDetails;
 };
 
 export type SetProductVisibilityDto = {
@@ -38,6 +48,9 @@ export type ProductResponseDto = {
   available: boolean;
   category: string | null;
   checkoutMode: "whatsapp" | "platform";
+  offerType: OfferType;
+  subtype: string | null;
+  details: OfferDetails;
   createdAt: string;
   updatedAt: string;
 };

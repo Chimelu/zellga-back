@@ -17,6 +17,13 @@ export type AffiliateEarnings = {
   pendingCommission: number;
 };
 
+/** Just enough to name an affiliate next to something they referred. */
+export type AffiliateSummary = {
+  id: string;
+  name: string;
+  refCode: string;
+};
+
 export type AffiliateSale = {
   orderId: string;
   reference: string;
@@ -49,6 +56,11 @@ export interface AffiliateRepository {
   /** Every store a user is an affiliate for, for their own dashboard. */
   listByUser(userId: string): Promise<Affiliate[]>;
   refCodeExists(refCode: string): Promise<boolean>;
+  /**
+   * Names for a set of affiliate ids, so a list of orders can show who referred
+   * each one without a query per row.
+   */
+  summariesFor(affiliateIds: string[]): Promise<Map<string, AffiliateSummary>>;
   save(affiliate: Affiliate): Promise<Affiliate>;
   remove(id: string): Promise<void>;
 

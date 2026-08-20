@@ -6,7 +6,7 @@ const MAX_VIDEO_BYTES = 50 * 1024 * 1024;
 
 export const productMediaUpload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: MAX_VIDEO_BYTES, files: 2 },
+  limits: { fileSize: MAX_VIDEO_BYTES, files: 5 },
   fileFilter: (_req, file, cb) => {
     const isImage = file.mimetype.startsWith("image/");
     const isVideo = file.mimetype.startsWith("video/");
