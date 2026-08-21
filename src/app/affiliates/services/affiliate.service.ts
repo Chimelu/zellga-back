@@ -4,11 +4,14 @@ import {
   AffiliateInvite,
 } from "../../../core/models/affiliate.model";
 import {
+  AppError,
   ConflictError,
   ForbiddenError,
   NotFoundError,
   ValidationError,
 } from "../../../core/errors/app.error";
+import type { Store } from "../../../core/models/store.model";
+import type { User } from "../../../core/models/user.model";
 import type {
   AffiliateEarnings,
   AffiliateInviteRepository,
@@ -25,6 +28,8 @@ import type {
   AffiliateProductDto,
   AffiliateProgramDto,
   AffiliateSalesPageDto,
+  FailedInviteDto,
+  InviteResultDto,
   ManagedAffiliateDto,
   ManagedInviteDto,
   MyAffiliationDto,
@@ -128,10 +133,12 @@ export class AffiliateService {
   }
 
   /**
-   * Sends (or re-sends) an invite. A pending invite for the same address is
-   * reused with a fresh token and expiry rather than piling up duplicate rows.
+   * Invites a batch of addresses. Each is sent on its own, so one address that
+   * is already an affiliate — or that the mail server rejects — does not stop
+   * the others going out. When not a single invite made it, the first failure
+   * is thrown instead, because there is no partial success to report.
    */
-  async invite(userId: string, email: string): Promise<ManagedInviteDto> {
+  async inviteMany(userId: string, emails: string[]): Promise<InviteResultDto> {
     const store = await this.requireOwnedStore(userId);
     const owner = await this.users.findById(userId);
 
@@ -141,6 +148,38 @@ export class AffiliateService {
       );
     }
 
+    const sent: ManagedInviteDto[] = [];
+    const failed: FailedInviteDto[] = [];
+    let firstError: AppError | null = null;
+
+    for (const email of emails) {
+      try {
+        sent.push(await this.sendInvite(store, owner, email));
+      } catch (err) {
+        // Anything that is not a handled application error is a real fault —
+        // let it bubble rather than reporting it as a bad email address.
+        if (!(err instanceof AppError)) throw err;
+        firstError = firstError ?? err;
+        failed.push({ email, reason: err.message });
+      }
+    }
+
+    if (sent.length === 0 && firstError) {
+      throw firstError;
+    }
+
+    return { sent, failed };
+  }
+
+  /**
+   * Sends (or re-sends) one invite. A pending invite for the same address is
+   * reused with a fresh token and expiry rather than piling up duplicate rows.
+   */
+  private async sendInvite(
+    store: Store,
+    owner: User | null,
+    email: string
+  ): Promise<ManagedInviteDto> {
     const normalized = email.trim().toLowerCase();
 
     if (owner?.email && owner.email === normalized) {

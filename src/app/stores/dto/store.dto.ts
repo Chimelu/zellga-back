@@ -8,6 +8,10 @@ export type PublicStoreDto = {
   slug: string;
   category: string | null;
   description: string | null;
+  /** Square profile image shown over the cover on the storefront. */
+  logoUrl: string | null;
+  /** Wide banner behind the store name on the storefront. */
+  coverUrl: string | null;
   ownerName: string;
   phone: string;
 };

@@ -1,3 +1,23 @@
+export type StoreProfileDto = {
+  id: string;
+  name: string;
+  slug: string;
+  category: string | null;
+  description: string | null;
+  /** Square profile image shown over the cover on the storefront. */
+  logoUrl: string | null;
+  /** Wide banner behind the store name on the storefront. */
+  coverUrl: string | null;
+  link: string;
+};
+
+export type ProfileSettingsDto = {
+  /** Default checkout path for new items */
+  defaultCheckoutMode: "whatsapp" | "platform";
+  /** Store-wide affiliate rate; 0 means affiliates are switched off. */
+  affiliateCommissionPercent: number;
+};
+
 export type BusinessProfileDto = {
   user: {
     id: string;
@@ -6,14 +26,11 @@ export type BusinessProfileDto = {
     email: string | null;
     role: "seller" | "affiliate";
   };
-  store: {
-    id: string;
-    name: string;
-    slug: string;
-    category: string | null;
-    description: string | null;
-    link: string;
-  };
+  /**
+   * Null for an affiliate: they sell for other people's stores and own none.
+   * The payout block below is still theirs, which is why they read this route.
+   */
+  store: StoreProfileDto | null;
   /** Where the seller is paid out. Null fields mean it has not been set up yet. */
   payout: {
     bankName: string | null;
@@ -24,12 +41,8 @@ export type BusinessProfileDto = {
     /** True once all three fields are present. */
     complete: boolean;
   };
-  settings: {
-    /** Default checkout path for new items */
-    defaultCheckoutMode: "whatsapp" | "platform";
-    /** Store-wide affiliate rate; 0 means affiliates are switched off. */
-    affiliateCommissionPercent: number;
-  };
+  /** Null whenever `store` is — these settings belong to a store. */
+  settings: ProfileSettingsDto | null;
 };
 
 export type UpdatePayoutDto = {
@@ -44,6 +57,8 @@ export type UpdateStoreDetailsDto = {
   slug?: string;
   category?: string | null;
   description?: string | null;
+  logoUrl?: string | null;
+  coverUrl?: string | null;
 };
 
 export type UpdateAccountDto = {

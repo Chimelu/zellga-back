@@ -12,6 +12,8 @@ function toDomain(row: StoreOrmEntity): Store {
     slug: row.slug,
     category: row.category,
     description: row.description ?? null,
+    logoUrl: row.logoUrl ?? null,
+    coverUrl: row.coverUrl ?? null,
     defaultCheckoutMode: row.defaultCheckoutMode ?? "whatsapp",
     affiliateCommissionPercent: Number(row.affiliateCommissionPercent ?? 0),
     createdAt: row.createdAt,
@@ -27,6 +29,8 @@ function toOrm(store: Store): StoreOrmEntity {
   row.slug = store.slug;
   row.category = store.category;
   row.description = store.description;
+  row.logoUrl = store.logoUrl;
+  row.coverUrl = store.coverUrl;
   row.defaultCheckoutMode = store.defaultCheckoutMode;
   row.affiliateCommissionPercent = store.affiliateCommissionPercent.toFixed(2);
   row.createdAt = store.createdAt;

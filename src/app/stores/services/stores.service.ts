@@ -52,6 +52,8 @@ export class StoresService {
         slug: store.slug,
         category: store.category,
         description: store.description,
+        logoUrl: store.logoUrl,
+        coverUrl: store.coverUrl,
         ownerName: owner.name,
         phone: owner.phone,
       },

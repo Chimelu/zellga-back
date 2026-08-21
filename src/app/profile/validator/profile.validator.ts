@@ -11,6 +11,10 @@ export const updateStoreDetailsValidator = z.object({
     .optional(),
   category: z.string().trim().max(60).nullable().optional(),
   description: z.string().trim().max(2000).nullable().optional(),
+  // Uploaded through /api/uploads/media first, so what lands here is the
+  // hosted URL that came back, never the file itself.
+  logoUrl: z.string().trim().url("Upload the image again").max(500).nullable().optional(),
+  coverUrl: z.string().trim().url("Upload the image again").max(500).nullable().optional(),
 });
 
 export const updateAccountValidator = z.object({

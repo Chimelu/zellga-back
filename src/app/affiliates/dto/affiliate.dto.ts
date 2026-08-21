@@ -50,7 +50,23 @@ export type AffiliateProgramDto = {
 };
 
 export type InviteAffiliateDto = {
+  /** One address, or several sent in the same batch. */
+  emails: string[];
+};
+
+/** One address that could not be invited, and why the owner should care. */
+export type FailedInviteDto = {
   email: string;
+  reason: string;
+};
+
+/**
+ * A batch result. One bad address does not sink the rest of the batch, so the
+ * owner sees exactly who was emailed and who still needs attention.
+ */
+export type InviteResultDto = {
+  sent: ManagedInviteDto[];
+  failed: FailedInviteDto[];
 };
 
 /** One store a user sells for, as the affiliate sees it. */

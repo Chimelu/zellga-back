@@ -17,8 +17,9 @@ export class AffiliateController {
   };
 
   invite = async (req: Request, res: Response): Promise<void> => {
+    // The validator normalises `email` and `emails` down to one list.
     const body = req.body as InviteAffiliateDto;
-    const data = await this.service.invite(req.user!.id, body.email);
+    const data = await this.service.inviteMany(req.user!.id, body.emails);
     res.status(201).json({ success: true, data });
   };
 

@@ -124,6 +124,8 @@ export class AuthService {
       slug,
       category: input.category?.trim() || null,
       description: null,
+      logoUrl: null,
+      coverUrl: null,
       defaultCheckoutMode: "whatsapp",
       affiliateCommissionPercent: 0,
       createdAt: now,

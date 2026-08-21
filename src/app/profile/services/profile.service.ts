@@ -28,19 +28,33 @@ export class ProfileService {
     private readonly hasher: PasswordHasher
   ) {}
 
-  private async loadProfile(userId: string): Promise<{ user: User; store: Store }> {
+  /**
+   * Affiliates own no store, so the store side is optional here — they read
+   * and write this profile for their payout account just like a seller does.
+   */
+  private async loadProfile(
+    userId: string
+  ): Promise<{ user: User; store: Store | null }> {
     const user = await this.users.findById(userId);
     if (!user) {
       throw new NotFoundError("Account not found");
     }
     const store = await this.stores.findByOwnerId(userId);
+    return { user, store };
+  }
+
+  /** For the routes that only a store owner can use. */
+  private async loadStoreProfile(
+    userId: string
+  ): Promise<{ user: User; store: Store }> {
+    const { user, store } = await this.loadProfile(userId);
     if (!store) {
       throw new NotFoundError("Store not found for this account");
     }
     return { user, store };
   }
 
-  private toDto(user: User, store: Store): BusinessProfileDto {
+  private toDto(user: User, store: Store | null): BusinessProfileDto {
     return {
       user: {
         id: user.id,
@@ -49,14 +63,18 @@ export class ProfileService {
         email: user.email,
         role: user.role,
       },
-      store: {
-        id: store.id,
-        name: store.name,
-        slug: store.slug,
-        category: store.category,
-        description: store.description,
-        link: `zellga.com/${store.slug}`,
-      },
+      store: store
+        ? {
+            id: store.id,
+            name: store.name,
+            slug: store.slug,
+            category: store.category,
+            description: store.description,
+            logoUrl: store.logoUrl,
+            coverUrl: store.coverUrl,
+            link: `zellga.com/${store.slug}`,
+          }
+        : null,
       payout: {
         bankName: user.bankName,
         bankCode: user.bankCode,
@@ -64,10 +82,12 @@ export class ProfileService {
         accountName: user.bankAccountName,
         complete: user.hasPayoutAccount,
       },
-      settings: {
-        defaultCheckoutMode: store.defaultCheckoutMode,
-        affiliateCommissionPercent: store.affiliateCommissionPercent,
-      },
+      settings: store
+        ? {
+            defaultCheckoutMode: store.defaultCheckoutMode,
+            affiliateCommissionPercent: store.affiliateCommissionPercent,
+          }
+        : null,
     };
   }
 
@@ -80,7 +100,7 @@ export class ProfileService {
     userId: string,
     input: UpdateStoreDetailsDto
   ): Promise<BusinessProfileDto> {
-    const { user, store } = await this.loadProfile(userId);
+    const { user, store } = await this.loadStoreProfile(userId);
 
     if (input.name !== undefined) {
       store.name = input.name.trim();
@@ -105,6 +125,14 @@ export class ProfileService {
     if (input.description !== undefined) {
       store.description =
         input.description === null ? null : input.description.trim() || null;
+    }
+
+    if (input.logoUrl !== undefined) {
+      store.logoUrl = input.logoUrl?.trim() || null;
+    }
+
+    if (input.coverUrl !== undefined) {
+      store.coverUrl = input.coverUrl?.trim() || null;
     }
 
     store.updatedAt = new Date();
@@ -190,7 +218,7 @@ export class ProfileService {
     userId: string,
     input: UpdateSettingsDto
   ): Promise<BusinessProfileDto> {
-    const { user, store } = await this.loadProfile(userId);
+    const { user, store } = await this.loadStoreProfile(userId);
 
     if (input.defaultCheckoutMode !== undefined) {
       store.defaultCheckoutMode = input.defaultCheckoutMode;

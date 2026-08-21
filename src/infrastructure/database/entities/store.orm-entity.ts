@@ -35,6 +35,14 @@ export class StoreOrmEntity {
   @Column({ type: "text", nullable: true })
   description!: string | null;
 
+  /** Square profile image shown over the cover on the storefront. */
+  @Column({ name: "logo_url", type: "text", nullable: true })
+  logoUrl!: string | null;
+
+  /** Wide banner behind the store name on the storefront. */
+  @Column({ name: "cover_url", type: "text", nullable: true })
+  coverUrl!: string | null;
+
   @Column({
     name: "default_checkout_mode",
     type: "varchar",
