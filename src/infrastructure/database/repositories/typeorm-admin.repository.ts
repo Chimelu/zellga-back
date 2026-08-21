@@ -1,3 +1,4 @@
+import type { CheckoutMode } from "../../../core/models/store.model";
 import { DataSource } from "typeorm";
 import type {
   AdminAnalytics,
@@ -51,7 +52,7 @@ type UserRaw = {
   store_name: string | null;
   store_slug: string | null;
   store_category: string | null;
-  store_checkout_mode: "whatsapp" | "platform" | null;
+  store_checkout_mode: CheckoutMode | null;
   store_created_at: Date | null;
   product_count: string;
 };
@@ -461,9 +462,10 @@ export class TypeOrmAdminRepository implements AdminRepository {
 
     const [checkoutSplit] = (await this.ds.query(
       `SELECT COUNT(*) FILTER (WHERE checkout_mode = 'whatsapp')::int AS whatsapp,
-              COUNT(*) FILTER (WHERE checkout_mode = 'platform')::int AS platform
+              COUNT(*) FILTER (WHERE checkout_mode = 'platform')::int AS platform,
+              COUNT(*) FILTER (WHERE checkout_mode = 'both')::int AS both
          FROM products`
-    )) as { whatsapp: number; platform: number }[];
+    )) as { whatsapp: number; platform: number; both: number }[];
 
     const topStoreRows = (await this.ds.query(
       `SELECT s.id, s.name, s.slug, u.name AS owner_name,
@@ -529,6 +531,7 @@ export class TypeOrmAdminRepository implements AdminRepository {
       checkoutSplit: {
         whatsapp: num(checkoutSplit?.whatsapp),
         platform: num(checkoutSplit?.platform),
+        both: num(checkoutSplit?.both),
       },
       topStores: topStoreRows.map((row) => {
         const totals = storeTotals.get(row.id) ?? { count: 0, revenue: 0 };

@@ -1,3 +1,4 @@
+import type { CheckoutMode } from "../models/store.model";
 import type { OrderStatus, PaymentStatus } from "../models/order.model";
 
 export type Paginated<T> = {
@@ -18,7 +19,7 @@ export type AdminUserRow = {
     name: string;
     slug: string;
     category: string | null;
-    defaultCheckoutMode: "whatsapp" | "platform";
+    defaultCheckoutMode: CheckoutMode;
     createdAt: Date;
   } | null;
   productCount: number;
@@ -79,7 +80,9 @@ export type AdminAnalytics = {
   signupsByDay: { date: string; users: number; stores: number }[];
   ordersByDay: { date: string; orders: number; revenue: number }[];
   topCategories: { category: string; stores: number }[];
-  checkoutSplit: { whatsapp: number; platform: number };
+  /** Products by how they can be ordered; `both` is its own bucket so the
+   *  three always add up to the catalogue. */
+  checkoutSplit: { whatsapp: number; platform: number; both: number };
   topStores: {
     id: string;
     name: string;

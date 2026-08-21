@@ -1,3 +1,4 @@
+import type { CheckoutMode } from "../../../core/models/store.model";
 import type { OfferDetails, OfferType } from "../../../core/models/offer.model";
 
 export type ProductMediaDto = {
@@ -11,7 +12,7 @@ export type CreateProductDto = {
   price: number;
   description?: string;
   category?: string;
-  checkoutMode?: "whatsapp" | "platform";
+  checkoutMode?: CheckoutMode;
   available?: boolean;
   media?: ProductMediaDto[];
   /** Defaults to `physical`, which is all the catalogue held before types. */
@@ -26,7 +27,7 @@ export type UpdateProductDto = {
   price?: number;
   description?: string | null;
   category?: string | null;
-  checkoutMode?: "whatsapp" | "platform";
+  checkoutMode?: CheckoutMode;
   media?: ProductMediaDto[];
   offerType?: OfferType;
   subtype?: string;
@@ -47,7 +48,7 @@ export type ProductResponseDto = {
   media: ProductMediaDto[];
   available: boolean;
   category: string | null;
-  checkoutMode: "whatsapp" | "platform";
+  checkoutMode: CheckoutMode;
   offerType: OfferType;
   subtype: string | null;
   details: OfferDetails;

@@ -25,6 +25,8 @@ export const createOrderValidator = z.object({
       })
     )
     .min(1, "Add at least one item"),
+  /** The buyer's pick when an item offers both ways to check out. */
+  channel: z.enum(["whatsapp", "platform"]).optional(),
   note: z.string().trim().max(500).optional(),
   ref: z.string().trim().max(20).optional(),
 });

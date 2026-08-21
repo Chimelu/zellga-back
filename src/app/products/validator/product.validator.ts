@@ -32,7 +32,7 @@ const baseFields = {
   name: z.string().trim().min(1, "Item name is required").max(160),
   description: z.string().max(5000).optional(),
   category: z.string().trim().max(60).optional(),
-  checkoutMode: z.enum(["whatsapp", "platform"]).optional(),
+  checkoutMode: z.enum(["whatsapp", "platform", "both"]).optional(),
   available: z.boolean().optional(),
   media: z.array(mediaItemSchema).max(5).optional(),
   offerType: offerTypeSchema.optional(),

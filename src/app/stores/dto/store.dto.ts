@@ -1,6 +1,7 @@
 import type { OfferDetails, OfferType } from "../../../core/models/offer.model";
+import type { CheckoutMode } from "../../../core/models/store.model";
 
-import type { OrderStatus } from "../../../core/models/order.model";
+import type { OrderChannel, OrderStatus } from "../../../core/models/order.model";
 
 export type PublicStoreDto = {
   id: string;
@@ -24,7 +25,7 @@ export type PublicProductDto = {
   imageUrl: string | null;
   media: { url: string; type: "image" | "video" }[];
   category: string | null;
-  checkoutMode: "whatsapp" | "platform";
+  checkoutMode: CheckoutMode;
   offerType: OfferType;
   subtype: string | null;
   details: OfferDetails;
@@ -41,6 +42,12 @@ export type CreateOrderDto = {
   /** Required when the items are paid for on the platform. */
   buyerEmail?: string;
   items: CreateOrderItemDto[];
+  /**
+   * Which way the buyer chose to check out. Only meaningful when the items
+   * allow both; anything the items do not allow is ignored in favour of what
+   * they do.
+   */
+  channel?: OrderChannel;
   note?: string;
   /** Affiliate ref code from the link the buyer arrived through. */
   ref?: string;

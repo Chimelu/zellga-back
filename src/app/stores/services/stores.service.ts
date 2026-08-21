@@ -7,6 +7,7 @@ import {
   buildWhatsAppLink,
   buildWhatsAppOrderMessage,
 } from "../../../core/utils/whatsapp";
+import type { OrderChannel } from "../../../core/models/order.model";
 import type { OrderRepository } from "../../../core/repositories/order.repository";
 import type { ProductRepository } from "../../../core/repositories/product.repository";
 import type { StoreRepository } from "../../../core/repositories/store.repository";
@@ -119,21 +120,37 @@ export class StoresService {
 
     /**
      * The seller sets the payment method per item, so the order follows what
-     * was actually ordered. A basket holding any pay-on-platform item is paid
-     * on the platform — falling back to WhatsApp would skip collecting money
-     * for that item. The store default only covers an empty catalogue lookup,
-     * since every product carries its own mode.
+     * was actually ordered. An item set to `both` allows either way, so the
+     * basket allows a channel only when every item in it does. A basket that
+     * agrees on nothing is paid on the platform — falling back to WhatsApp
+     * would skip collecting money for the pay-online item in it.
      */
     const modes = lines.map(
-      (line) => byId.get(line.productId ?? "")?.checkoutMode
+      (line) =>
+        byId.get(line.productId ?? "")?.checkoutMode ??
+        store.defaultCheckoutMode
     );
-    const chosenMode: "whatsapp" | "platform" = modes.some(
-      (mode) => mode === "platform"
-    )
-      ? "platform"
-      : modes.some((mode) => mode === "whatsapp")
-        ? "whatsapp"
-        : store.defaultCheckoutMode;
+    const allowsWhatsApp = modes.every(
+      (mode) => mode === "whatsapp" || mode === "both"
+    );
+    const allowsPlatform = modes.every(
+      (mode) => mode === "platform" || mode === "both"
+    );
+
+    /**
+     * With both on offer the buyer's pick decides it, since they are the one
+     * choosing how to pay. Without a pick, the store's own default breaks the
+     * tie. A pick the basket does not allow is ignored rather than refused —
+     * the response tells the storefront which way the order actually went.
+     */
+    const requested = input.channel;
+    const chosenMode: OrderChannel =
+      allowsWhatsApp && allowsPlatform
+        ? (requested ??
+          (store.defaultCheckoutMode === "whatsapp" ? "whatsapp" : "platform"))
+        : allowsWhatsApp
+          ? "whatsapp"
+          : "platform";
 
     /**
      * A referred sale is always paid on the platform, whatever the item's own
@@ -142,9 +159,7 @@ export class StoresService {
      * has no proof they made the sale. Paystack settling the money is that
      * proof, so the referral link is what decides the channel here.
      */
-    const channel: "whatsapp" | "platform" = affiliate
-      ? "platform"
-      : chosenMode;
+    const channel: OrderChannel = affiliate ? "platform" : chosenMode;
 
     const buyerEmail = input.buyerEmail?.trim().toLowerCase() || null;
     if (channel === "platform" && !buyerEmail) {

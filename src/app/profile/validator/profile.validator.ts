@@ -44,7 +44,7 @@ export const updatePayoutValidator = z.object({
 });
 
 export const updateSettingsValidator = z.object({
-  defaultCheckoutMode: z.enum(["whatsapp", "platform"]).optional(),
+  defaultCheckoutMode: z.enum(["whatsapp", "platform", "both"]).optional(),
   affiliateCommissionPercent: z
     .number()
     .min(0, "Commission cannot be negative")

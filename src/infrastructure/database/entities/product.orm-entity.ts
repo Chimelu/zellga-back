@@ -1,3 +1,4 @@
+import type { CheckoutMode } from "../../../core/models/store.model";
 import {
   Entity,
   PrimaryGeneratedColumn,
@@ -53,7 +54,7 @@ export class ProductOrmEntity {
   category!: string | null;
 
   @Column({ name: "checkout_mode", type: "varchar", length: 20, default: "whatsapp" })
-  checkoutMode!: "whatsapp" | "platform";
+  checkoutMode!: CheckoutMode;
 
   /**
    * What the seller is selling. Stores are not locked to one type — this is

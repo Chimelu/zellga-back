@@ -1,3 +1,5 @@
+import type { CheckoutMode } from "../../../core/models/store.model";
+
 export type StoreProfileDto = {
   id: string;
   name: string;
@@ -13,7 +15,7 @@ export type StoreProfileDto = {
 
 export type ProfileSettingsDto = {
   /** Default checkout path for new items */
-  defaultCheckoutMode: "whatsapp" | "platform";
+  defaultCheckoutMode: CheckoutMode;
   /** Store-wide affiliate rate; 0 means affiliates are switched off. */
   affiliateCommissionPercent: number;
 };
@@ -68,7 +70,7 @@ export type UpdateAccountDto = {
 };
 
 export type UpdateSettingsDto = {
-  defaultCheckoutMode?: "whatsapp" | "platform";
+  defaultCheckoutMode?: CheckoutMode;
   affiliateCommissionPercent?: number;
 };
 

@@ -1,3 +1,10 @@
+/**
+ * How buyers may order. `both` offers each path and lets the buyer pick at
+ * checkout; an order itself is still settled one way or the other, which is
+ * what `OrderChannel` records.
+ */
+export type CheckoutMode = "whatsapp" | "platform" | "both";
+
 export type StoreProps = {
   id: string;
   ownerId: string;
@@ -9,7 +16,7 @@ export type StoreProps = {
   logoUrl: string | null;
   /** Wide banner behind the store name on the storefront. */
   coverUrl: string | null;
-  defaultCheckoutMode: "whatsapp" | "platform";
+  defaultCheckoutMode: CheckoutMode;
   /** Store-wide affiliate rate, 0 when the store is not recruiting affiliates. */
   affiliateCommissionPercent: number;
   createdAt: Date;
@@ -25,7 +32,7 @@ export class Store {
   description: string | null;
   logoUrl: string | null;
   coverUrl: string | null;
-  defaultCheckoutMode: "whatsapp" | "platform";
+  defaultCheckoutMode: CheckoutMode;
   affiliateCommissionPercent: number;
   readonly createdAt: Date;
   updatedAt: Date;

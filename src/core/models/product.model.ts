@@ -1,3 +1,4 @@
+import type { CheckoutMode } from "./store.model";
 import type { OfferDetails, OfferType } from "./offer.model";
 
 export type ProductMediaItem = {
@@ -18,7 +19,7 @@ export type ProductProps = {
   /** false = hidden from public store link */
   available: boolean;
   category: string | null;
-  checkoutMode: "whatsapp" | "platform";
+  checkoutMode: CheckoutMode;
   /** What kind of thing this is — see `OfferType`. */
   offerType: OfferType;
   /** Narrower kind within the type, e.g. `course` under `digital`. */
@@ -40,7 +41,7 @@ export class Product {
   media: ProductMediaItem[];
   available: boolean;
   category: string | null;
-  checkoutMode: "whatsapp" | "platform";
+  checkoutMode: CheckoutMode;
   offerType: OfferType;
   subtype: string | null;
   details: OfferDetails;

@@ -8,6 +8,7 @@ import {
   OneToOne,
   JoinColumn,
 } from "typeorm";
+import type { CheckoutMode } from "../../../core/models/store.model";
 import { UserOrmEntity } from "./user.orm-entity";
 
 @Entity({ name: "stores" })
@@ -49,7 +50,7 @@ export class StoreOrmEntity {
     length: 20,
     default: "whatsapp",
   })
-  defaultCheckoutMode!: "whatsapp" | "platform";
+  defaultCheckoutMode!: CheckoutMode;
 
   /**
    * Share of each attributed order paid to the affiliate who brought it in.

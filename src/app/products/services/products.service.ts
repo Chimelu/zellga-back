@@ -110,13 +110,16 @@ export class ProductsService {
       category: input.category?.trim() || null,
       /**
        * The type decides the default: digital, ticket and membership sales are
-       * paid on the platform because access has to follow the money. An
-       * explicit choice from the seller still wins.
+       * paid on the platform because access has to follow the money. A store
+       * that offers both ways passes that on instead, so an item added after
+       * the setting was turned on is not quietly limited to one of them. An
+       * explicit choice from the seller still wins over either.
        */
       checkoutMode:
         input.checkoutMode ??
-        defaultCheckoutModeFor(offerType) ??
-        store.defaultCheckoutMode,
+        (store.defaultCheckoutMode === "both"
+          ? "both"
+          : defaultCheckoutModeFor(offerType)),
       offerType,
       subtype: input.subtype?.trim() || null,
       details,
