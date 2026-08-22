@@ -14,7 +14,12 @@ const envSchema = z.object({
   CLOUDINARY_API_SECRET: z.string().min(1),
   CLOUDINARY_FOLDER: z.string().default("zellga/products"),
 
-  /** Public web app, used to build links inside outgoing email. */
+  /**
+   * Public web app. Every link that leaves this server is built from it —
+   * affiliate invites and share links, password resets, and the Paystack
+   * return URL — so in production it must be the real domain. The localhost
+   * default is a convenience for local work only; see the check below.
+   */
   APP_URL: z.string().url().default("http://localhost:3000"),
 
   /**
@@ -62,7 +67,38 @@ const source = {
   MAIL_FROM: process.env.MAIL_FROM || process.env.SMTP_FROM,
 };
 
-const parsed = envSchema.safeParse(source);
+/** A host that only resolves on the developer's own machine. */
+function isLocalHost(url: string): boolean {
+  try {
+    const { hostname } = new URL(url);
+    return (
+      hostname === "localhost" ||
+      hostname === "127.0.0.1" ||
+      hostname === "::1" ||
+      hostname.endsWith(".local")
+    );
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * A production deploy that never set APP_URL used to fall back to localhost
+ * and mail out invite links nobody could open. Refusing to boot turns that
+ * into a deploy-time failure, which is where it is cheap to fix.
+ */
+const guardedSchema = envSchema.superRefine((value, ctx) => {
+  if (value.NODE_ENV === "production" && isLocalHost(value.APP_URL)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ["APP_URL"],
+      message:
+        "APP_URL must be the public web address in production — emailed invite, share and reset links are built from it",
+    });
+  }
+});
+
+const parsed = guardedSchema.safeParse(source);
 
 if (!parsed.success) {
   const details = parsed.error.flatten().fieldErrors;
