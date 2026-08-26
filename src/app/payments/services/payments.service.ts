@@ -4,8 +4,10 @@ import {
   UnauthorizedError,
   ValidationError,
 } from "../../../core/errors/app.error";
+import type { DigitalDetails } from "../../../core/models/offer.model";
 import type { Order } from "../../../core/models/order.model";
 import type { OrderRepository } from "../../../core/repositories/order.repository";
+import type { ProductRepository } from "../../../core/repositories/product.repository";
 import type {
   Bank,
   PaymentEvent,
@@ -15,6 +17,7 @@ import type {
 } from "../../../core/services/payment.gateway";
 import { generateRefCode } from "../../../core/utils/ref-code";
 import type {
+  DigitalAccessItemDto,
   InitializePaymentDto,
   InitializedPaymentDto,
   PaymentStatusDto,
@@ -26,6 +29,7 @@ const AMOUNT_TOLERANCE = 0.01;
 export class PaymentsService {
   constructor(
     private readonly orders: OrderRepository,
+    private readonly products: ProductRepository,
     private readonly gateway: PaymentGateway,
     private readonly callbackUrl: string
   ) {}
@@ -39,7 +43,45 @@ export class PaymentsService {
     return `${orderReference}-${generateRefCode(6)}`;
   }
 
-  private toStatusDto(order: Order): PaymentStatusDto {
+  /**
+   * Automatic delivery, and the only delivery a digital offer has.
+   *
+   * The seller is never in the loop: the moment the provider confirms the
+   * money, the links they saved on the offer are what the buyer is handed
+   * back. Gated on `order.isPaid` rather than on anything the caller says,
+   * because a payment reference is guessable enough that returning the file
+   * for a pending one would be giving it away.
+   */
+  private async digitalAccessFor(order: Order): Promise<DigitalAccessItemDto[]> {
+    if (!order.isPaid) return [];
+
+    const access: DigitalAccessItemDto[] = [];
+    for (const line of order.items) {
+      if (!line.productId) continue;
+      const product = await this.products.findById(line.productId);
+      if (!product || product.offerType !== "digital") continue;
+
+      const details = product.details as DigitalDetails;
+      access.push({
+        productId: product.id,
+        name: product.name,
+        fileUrl: details.fileUrl ?? null,
+        fileName: details.fileName ?? null,
+        videoUrl: details.videoUrl ?? null,
+        modules: (details.modules ?? []).map((module) => ({
+          title: module.title,
+          lessons: (module.lessons ?? []).map((lesson) => ({
+            title: lesson.title,
+            videoUrl: lesson.videoUrl ?? null,
+            resourceUrl: lesson.resourceUrl ?? null,
+          })),
+        })),
+      });
+    }
+    return access;
+  }
+
+  private async toStatusDto(order: Order): Promise<PaymentStatusDto> {
     return {
       orderId: order.id,
       orderReference: order.reference,
@@ -50,6 +92,7 @@ export class PaymentsService {
       amountPaid: order.amountPaid,
       paidAt: order.paidAt ? order.paidAt.toISOString() : null,
       channel: order.paymentChannel,
+      digitalAccess: await this.digitalAccessFor(order),
     };
   }
 

@@ -17,6 +17,7 @@ export class AdminController {
     const data = await this.adminService.listUsers(query);
     res.status(200).json({ success: true, data });
   };
+ 
 
   getUser = async (req: Request, res: Response): Promise<void> => {
     const data = await this.adminService.getUser(param(req.params.id));

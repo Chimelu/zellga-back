@@ -28,9 +28,12 @@ const availabilitySchema = z
 export const physicalDetailsSchema = z.object({}).strict().default({});
 
 export const digitalDetailsSchema = z.object({
-  delivery: z
-    .enum(["automatic", "download", "email", "account"])
-    .default("automatic"),
+  /**
+   * Not a choice. Automatic delivery on a confirmed payment is the only path
+   * the system implements, so anything a client sends — including an offer
+   * saved back when this was a question — lands on "automatic".
+   */
+  delivery: z.any().transform(() => "automatic" as const),
   fileUrl: z.string().url().nullable().default(null),
   fileName: z.string().max(255).nullable().default(null),
   fileSizeBytes: z.number().int().nonnegative().nullable().default(null),

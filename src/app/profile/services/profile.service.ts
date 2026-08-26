@@ -4,6 +4,7 @@ import {
   UnauthorizedError,
   ValidationError,
 } from "../../../core/errors/app.error";
+import { resolveCheckoutModeFor } from "../../../core/models/offer.model";
 import type { Store } from "../../../core/models/store.model";
 import type { User } from "../../../core/models/user.model";
 import type { ProductRepository } from "../../../core/repositories/product.repository";
@@ -223,11 +224,21 @@ export class ProfileService {
     if (input.defaultCheckoutMode !== undefined) {
       store.defaultCheckoutMode = input.defaultCheckoutMode;
 
-      // Keep every item on the same payment mode as the store setting
+      /**
+       * Keep every item on the same payment mode as the store setting — except
+       * the ones WhatsApp is closed to. A digital download is paid online by
+       * rule, and letting a store-wide switch drag it onto WhatsApp would mean
+       * a buyer paying for access nothing can grant.
+       */
       const items = await this.products.findByStoreId(store.id);
       for (const product of items) {
-        if (product.checkoutMode !== input.defaultCheckoutMode) {
-          product.checkoutMode = input.defaultCheckoutMode;
+        const next = resolveCheckoutModeFor(
+          product.offerType,
+          input.defaultCheckoutMode,
+          product.checkoutMode
+        );
+        if (product.checkoutMode !== next) {
+          product.checkoutMode = next;
           product.updatedAt = new Date();
           await this.products.save(product);
         }

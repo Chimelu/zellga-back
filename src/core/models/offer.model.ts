@@ -31,11 +31,13 @@ export type AvailabilityWindow = {
   end: string;
 };
 
-export type DigitalDelivery =
-  | "automatic"
-  | "download"
-  | "email"
-  | "account";
+/**
+ * A digital offer is handed over one way and one way only: automatically, the
+ * moment Paystack confirms the payment. The seller is not asked, and there is
+ * no manual path to fall back to — see `PaymentsService.digitalAccessFor`.
+ * Kept as a field because it is already stored on every existing offer.
+ */
+export type DigitalDelivery = "automatic";
 
 export type DigitalLesson = {
   title: string;
@@ -144,17 +146,43 @@ export type OfferDetails =
   | ServiceDetails;
 
 /**
- * Digital, ticket and membership sales are paid for on the platform: access
- * has to be granted the moment money lands, which a WhatsApp handoff cannot
- * promise. Physical goods, coaching and services still default to WhatsApp,
- * where the seller and buyer agree the details first.
+ * Whether this kind of offer may be handed over on WhatsApp at all.
+ *
+ * Digital, ticket and membership sales are not a negotiation — access has to
+ * be granted the moment money lands, and a WhatsApp handoff would rest that on
+ * the seller confirming a transfer by hand. Physical goods, coaching and
+ * services are: the buyer and seller agree the details between themselves, so
+ * WhatsApp stays a payment option there.
+ *
+ * This is a rule, not a default. A seller cannot switch it off for a digital
+ * offer, and the store-wide payment setting does not reach one either.
  */
+export function allowsWhatsAppCheckout(type: OfferType): boolean {
+  return type !== "digital" && type !== "event" && type !== "membership";
+}
+
+/** What checkout starts as when nothing else has decided it. */
 export function defaultCheckoutModeFor(
   type: OfferType
 ): "whatsapp" | "platform" {
-  return type === "digital" || type === "event" || type === "membership"
-    ? "platform"
-    : "whatsapp";
+  return allowsWhatsAppCheckout(type) ? "whatsapp" : "platform";
+}
+
+/**
+ * The mode an offer of this type is actually saved with. A choice that WhatsApp
+ * is closed to — whether the seller's own, or the store-wide default riding
+ * along — collapses to paying on the platform rather than being refused: the
+ * seller did not ask for it item by item, and refusing would block a store
+ * from holding a cake and a course at once.
+ */
+export function resolveCheckoutModeFor(
+  type: OfferType,
+  requested: "whatsapp" | "platform" | "both" | undefined,
+  storeDefault: "whatsapp" | "platform" | "both"
+): "whatsapp" | "platform" | "both" {
+  const wanted = requested ?? storeDefault;
+  if (!allowsWhatsAppCheckout(type)) return "platform";
+  return wanted;
 }
 
 /**

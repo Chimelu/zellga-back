@@ -5,6 +5,7 @@ import {
 } from "../../../core/models/product.model";
 import {
   defaultCheckoutModeFor,
+  resolveCheckoutModeFor,
   listingPriceFor,
   type OfferDetails,
 } from "../../../core/models/offer.model";
@@ -109,17 +110,18 @@ export class ProductsService {
       available: input.available ?? true,
       category: input.category?.trim() || null,
       /**
-       * The type decides the default: digital, ticket and membership sales are
-       * paid on the platform because access has to follow the money. A store
-       * that offers both ways passes that on instead, so an item added after
-       * the setting was turned on is not quietly limited to one of them. An
-       * explicit choice from the seller still wins over either.
+       * The store's own setting carries over so an item added after both ways
+       * were turned on is not quietly limited to one, and an explicit choice
+       * from the seller wins over it — but neither can open WhatsApp on a type
+       * that is paid online by rule. See `resolveCheckoutModeFor`.
        */
-      checkoutMode:
-        input.checkoutMode ??
-        (store.defaultCheckoutMode === "both"
+      checkoutMode: resolveCheckoutModeFor(
+        offerType,
+        input.checkoutMode,
+        store.defaultCheckoutMode === "both"
           ? "both"
-          : defaultCheckoutModeFor(offerType)),
+          : defaultCheckoutModeFor(offerType)
+      ),
       offerType,
       subtype: input.subtype?.trim() || null,
       details,
@@ -148,15 +150,24 @@ export class ProductsService {
       product.category =
         input.category === null ? null : input.category.trim() || null;
     }
-    if (input.checkoutMode !== undefined) {
-      product.checkoutMode = input.checkoutMode;
-    }
     if (input.offerType !== undefined) product.offerType = input.offerType;
     if (input.subtype !== undefined) {
       product.subtype = input.subtype?.trim() || null;
     }
     if (input.details !== undefined) {
       product.details = input.details as OfferDetails;
+    }
+    /**
+     * Applied after the type, since changing a cake into a course closes
+     * WhatsApp on it — the mode already stored has to be re-checked even when
+     * this request said nothing about it.
+     */
+    if (input.checkoutMode !== undefined || input.offerType !== undefined) {
+      product.checkoutMode = resolveCheckoutModeFor(
+        product.offerType,
+        input.checkoutMode,
+        product.checkoutMode
+      );
     }
     // Either half can move the derived price, so it is recomputed from both.
     if (
