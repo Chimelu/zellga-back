@@ -24,4 +24,9 @@ export class UploadsController {
     const data = await this.uploadsService.uploadMany(files, folder);
     res.status(201).json({ success: true, data });
   };
+
+  uploadDigitalFile = async (req: Request, res: Response): Promise<void> => {
+    const data = await this.uploadsService.uploadDigitalFile(getFiles(req)[0]);
+    res.status(201).json({ success: true, data });
+  };
 }

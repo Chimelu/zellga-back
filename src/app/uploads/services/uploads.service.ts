@@ -1,7 +1,19 @@
 import type { ImageStorage } from "../../../core/services/image-storage";
-import { assertMediaSize } from "../../shared/middleware/upload.middleware";
+import {
+  MAX_DIGITAL_FILE_BYTES,
+  assertMediaSize,
+} from "../../shared/middleware/upload.middleware";
 import { ValidationError } from "../../../core/errors/app.error";
-import type { UploadedMediaDto } from "../dto/upload.dto";
+import type { UploadedFileDto, UploadedMediaDto } from "../dto/upload.dto";
+
+/**
+ * Multer hands back whatever the browser sent, which on some clients is a full
+ * path. Only the last segment is a name, and it is shown to buyers.
+ */
+function cleanFileName(original: string): string {
+  const base = original.split(/[\\/]/).pop() ?? "";
+  return base.trim().slice(0, 255) || "download";
+}
 
 export class UploadsService {
   constructor(private readonly images: ImageStorage) {}
@@ -27,7 +39,45 @@ export class UploadsService {
     return {
       url: uploaded.url,
       publicId: uploaded.publicId,
-      type: uploaded.resourceType,
+      // The gallery only ever holds pictures and clips, so a `raw` result
+      // here would mean the wrong uploader ran.
+      type: uploaded.resourceType === "video" ? "video" : "image",
+    };
+  }
+
+  /**
+   * The asset behind a digital offer. Sent to the provider as `raw` unless it
+   * is a picture or a clip, so a PDF comes back byte-for-byte rather than
+   * having been through image processing.
+   *
+   * The original filename rides back with the result: it is what the buyer
+   * sees on the download button, and the provider's own public id is a slug
+   * that says nothing.
+   */
+  async uploadDigitalFile(file: Express.Multer.File): Promise<UploadedFileDto> {
+    if (!file) {
+      throw new ValidationError("No file provided");
+    }
+    if (file.size > MAX_DIGITAL_FILE_BYTES) {
+      throw new ValidationError("Files must be 100MB or less");
+    }
+
+    const resourceType = file.mimetype.startsWith("image/")
+      ? "image"
+      : file.mimetype.startsWith("video/") || file.mimetype.startsWith("audio/")
+        ? "video"
+        : "raw";
+
+    const uploaded = await this.images.upload(file.buffer, {
+      folder: "zellga/digital",
+      resourceType,
+    });
+
+    return {
+      url: uploaded.url,
+      publicId: uploaded.publicId,
+      fileName: cleanFileName(file.originalname),
+      sizeBytes: file.size,
     };
   }
 

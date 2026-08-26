@@ -7,6 +7,7 @@ import {
   buildWhatsAppLink,
   buildWhatsAppOrderMessage,
 } from "../../../core/utils/whatsapp";
+import { sanitizeRichText } from "../../../core/utils/rich-text";
 import type { OrderChannel } from "../../../core/models/order.model";
 import type { OrderRepository } from "../../../core/repositories/order.repository";
 import type { ProductRepository } from "../../../core/repositories/product.repository";
@@ -62,7 +63,10 @@ export class StoresService {
         id: p.id,
         name: p.name,
         price: p.price,
-        description: p.description,
+        // The storefront renders this as HTML, so it is cleaned on the way out
+        // too — a row written before the rich editor existed has never been
+        // through the write-side pass.
+        description: sanitizeRichText(p.description),
         imageUrl: p.imageUrl,
         media: p.media.map((m) => ({ url: m.url, type: m.type })),
         category: p.category,

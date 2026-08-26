@@ -14,6 +14,7 @@ import {
   NotFoundError,
 } from "../../../core/errors/app.error";
 import type { ProductRepository } from "../../../core/repositories/product.repository";
+import { sanitizeRichText } from "../../../core/utils/rich-text";
 import type { StoreRepository } from "../../../core/repositories/store.repository";
 import type { ImageStorage } from "../../../core/services/image-storage";
 import type {
@@ -29,7 +30,10 @@ function toDto(product: Product): ProductResponseDto {
     storeId: product.storeId,
     name: product.name,
     price: product.price,
-    description: product.description,
+    // Cleaned on read as well as on write: rows saved before descriptions were
+    // HTML hold whatever a seller once typed into a plain textarea, and the
+    // storefront now renders that as markup.
+    description: sanitizeRichText(product.description),
     imageUrl: product.imageUrl,
     media: product.media,
     available: product.available,
@@ -103,7 +107,7 @@ export class ProductsService {
       // Events price through their tiers, so the listing price is derived
       // rather than typed — see `listingPriceFor`.
       price: listingPriceFor(offerType, input.price, details),
-      description: input.description?.trim() || null,
+      description: sanitizeRichText(input.description),
       imageUrl: cover?.url ?? null,
       imagePublicId: cover?.publicId ?? null,
       media,
@@ -143,8 +147,7 @@ export class ProductsService {
     if (input.name !== undefined) product.name = input.name.trim();
     if (input.price !== undefined) product.price = input.price;
     if (input.description !== undefined) {
-      product.description =
-        input.description === null ? null : input.description.trim() || null;
+      product.description = sanitizeRichText(input.description);
     }
     if (input.category !== undefined) {
       product.category =

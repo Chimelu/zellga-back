@@ -8,6 +8,14 @@ import type { DigitalDetails } from "../../../core/models/offer.model";
 import type { Order } from "../../../core/models/order.model";
 import type { OrderRepository } from "../../../core/repositories/order.repository";
 import type { ProductRepository } from "../../../core/repositories/product.repository";
+import type { StoreRepository } from "../../../core/repositories/store.repository";
+import type { UserRepository } from "../../../core/repositories/user.repository";
+import type { Mailer } from "../../../core/services/mailer";
+import {
+  orderReceiptEmail,
+  sellerOrderEmail,
+  type OrderPaidEmailInput,
+} from "../../../infrastructure/email/templates/order-paid";
 import type {
   Bank,
   PaymentEvent,
@@ -30,8 +38,13 @@ export class PaymentsService {
   constructor(
     private readonly orders: OrderRepository,
     private readonly products: ProductRepository,
+    private readonly stores: StoreRepository,
+    private readonly users: UserRepository,
+    private readonly mailer: Mailer,
     private readonly gateway: PaymentGateway,
-    private readonly callbackUrl: string
+    private readonly callbackUrl: string,
+    /** Public web address, for the dashboard link in the seller's email. */
+    private readonly appUrl: string
   ) {}
 
   /**
@@ -79,6 +92,90 @@ export class PaymentsService {
       });
     }
     return access;
+  }
+
+  /**
+   * Tells the buyer and the seller that the money landed.
+   *
+   * Every failure here is swallowed. The payment is already settled and saved
+   * by the time this runs, and the two callers are a buyer's browser and a
+   * Paystack webhook — throwing would show the buyer an error for an order
+   * they paid for, or make Paystack retry a webhook that already applied. A
+   * missed email is a smaller problem than either, so it is logged and the
+   * order stands.
+   *
+   * Each side is sent independently: a bounced seller address must not cost
+   * the buyer their receipt, which for a digital order is the delivery.
+   */
+  private async sendPaidEmails(order: Order): Promise<void> {
+    try {
+      const store = await this.stores.findById(order.storeId);
+      if (!store) return;
+
+      const access = await this.digitalAccessFor(order);
+      const common: Omit<OrderPaidEmailInput, "to"> = {
+        storeName: store.name,
+        buyerName: order.buyerName,
+        buyerPhone: order.buyerPhone,
+        buyerEmail: order.buyerEmail,
+        reference: order.reference,
+        items: order.items.map((line) => ({
+          name: line.name,
+          quantity: line.quantity,
+          price: line.price,
+        })),
+        total: order.total,
+        amountPaid: order.amountPaid,
+        access: access.map((item) => ({
+          name: item.name,
+          fileUrl: item.fileUrl,
+          fileName: item.fileName,
+          videoUrl: item.videoUrl,
+          modules: item.modules.map((module) => ({
+            title: module.title,
+            lessons: module.lessons.map((lesson) => ({
+              title: lesson.title,
+              videoUrl: lesson.videoUrl ?? lesson.resourceUrl,
+            })),
+          })),
+        })),
+      };
+
+      const owner = await this.users.findById(store.ownerId);
+
+      await Promise.allSettled([
+        // A WhatsApp order has no email on it, so there is nobody to receipt.
+        order.buyerEmail
+          ? this.mailer.send(
+              orderReceiptEmail({ ...common, to: order.buyerEmail })
+            )
+          : Promise.resolve(),
+        // Sellers sign up with a phone number; an email is optional.
+        owner?.email
+          ? this.mailer.send(
+              sellerOrderEmail({
+                ...common,
+                to: owner.email,
+                orderUrl: `${this.appUrl}/my-store/orders/${order.id}`,
+              })
+            )
+          : Promise.resolve(),
+      ]).then((results) => {
+        for (const result of results) {
+          if (result.status === "rejected") {
+            console.error(
+              `Order ${order.reference}: paid-order email failed`,
+              result.reason
+            );
+          }
+        }
+      });
+    } catch (err) {
+      console.error(
+        `Order ${order.reference}: could not send paid-order emails`,
+        err
+      );
+    }
   }
 
   private async toStatusDto(order: Order): Promise<PaymentStatusDto> {
@@ -294,7 +391,19 @@ export class PaymentsService {
         provider: this.gateway.provider,
         paymentReference: outcome.reference,
       });
-      return changed ? this.orders.save(order) : order;
+      if (!changed) return order;
+
+      const saved = await this.orders.save(order);
+      /**
+       * Only on the transition, which is what makes this send once: Paystack
+       * retries a webhook until it gets a 200, and the buyer's browser hits
+       * verify on the way back, so this method runs several times per order.
+       * `markPaid` returns false for every run after the first.
+       *
+       * Not awaited into the caller's failure path — see `sendPaidEmails`.
+       */
+      await this.sendPaidEmails(saved);
+      return saved;
     }
 
     if (outcome.status === "failed") {

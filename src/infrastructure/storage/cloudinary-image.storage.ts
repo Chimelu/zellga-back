@@ -2,6 +2,7 @@ import { v2 as cloudinary } from "cloudinary";
 import { Readable } from "stream";
 import type {
   ImageStorage,
+  MediaResourceType,
   UploadedMedia,
 } from "../../core/services/image-storage";
 import { env } from "../config/env";
@@ -22,7 +23,7 @@ export class CloudinaryImageStorage implements ImageStorage {
     options?: {
       folder?: string;
       filename?: string;
-      resourceType?: "image" | "video" | "auto";
+      resourceType?: MediaResourceType | "auto";
     }
   ): Promise<UploadedMedia> {
     const resourceType = options?.resourceType ?? "auto";
@@ -45,8 +46,12 @@ export class CloudinaryImageStorage implements ImageStorage {
             );
             return;
           }
-          const type =
-            result.resource_type === "video" ? "video" : "image";
+          const type: MediaResourceType =
+            result.resource_type === "video"
+              ? "video"
+              : result.resource_type === "raw"
+                ? "raw"
+                : "image";
           resolve({
             url: result.secure_url,
             publicId: result.public_id,
@@ -61,7 +66,7 @@ export class CloudinaryImageStorage implements ImageStorage {
 
   async delete(
     publicId: string,
-    resourceType: "image" | "video" = "image"
+    resourceType: MediaResourceType = "image"
   ): Promise<void> {
     try {
       await cloudinary.uploader.destroy(publicId, {

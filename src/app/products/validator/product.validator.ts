@@ -30,7 +30,8 @@ function pricedByDetails(offerType: string, details: unknown): boolean {
 
 const baseFields = {
   name: z.string().trim().min(1, "Item name is required").max(160),
-  description: z.string().max(5000).optional(),
+  // Rich text, so the cap covers the markup as well as the words.
+  description: z.string().max(20_000).optional(),
   category: z.string().trim().max(60).optional(),
   checkoutMode: z.enum(["whatsapp", "platform", "both"]).optional(),
   available: z.boolean().optional(),
@@ -94,7 +95,7 @@ export const updateProductValidator = withDetails(
     ...baseFields,
     name: baseFields.name.optional(),
     price: priceSchema.optional(),
-    description: z.string().max(5000).nullable().optional(),
+    description: z.string().max(20_000).nullable().optional(),
     category: z.string().trim().max(60).nullable().optional(),
     details: z.unknown().optional(),
   })
