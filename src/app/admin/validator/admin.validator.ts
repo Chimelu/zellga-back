@@ -43,3 +43,8 @@ export const analyticsQueryValidator = z.object({
 export const updateOrderStatusValidator = z.object({
   status: orderStatus,
 });
+
+export const adminLoginValidator = z.object({
+  email: z.string().trim().toLowerCase().email("Enter a valid email").max(160),
+  password: z.string().min(1, "Password is required").max(72),
+});

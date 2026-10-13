@@ -1,4 +1,5 @@
 export {
+  adminLoginValidator,
   analyticsQueryValidator,
   orderListQueryValidator,
   updateOrderStatusValidator,

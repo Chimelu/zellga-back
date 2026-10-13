@@ -1,14 +1,27 @@
-import { Router } from "express";
+import { RequestHandler, Router } from "express";
 import { asyncHandler, validateBody } from "../shared/http/http";
-import { updateOrderStatusValidator } from "./validator";
+import { adminLoginValidator, updateOrderStatusValidator } from "./validator";
 import type { AdminController } from "./controller/admin.controller";
 
 /**
- * Admin console API. Auth is intentionally not wired up yet — an admin guard
- * goes in front of this router once the admin identity model lands.
+ * Admin console API. Everything but login sits behind the admin guard, and the
+ * controller routes demo admins to generated data instead of the database.
  */
-export function createAdminRouter(controller: AdminController): Router {
+export function createAdminRouter(
+  controller: AdminController,
+  requireAdmin: RequestHandler
+): Router {
   const router = Router();
+
+  router.post(
+    "/auth/login",
+    validateBody(adminLoginValidator),
+    asyncHandler(controller.login)
+  );
+
+  router.use(requireAdmin);
+
+  router.get("/auth/me", asyncHandler(controller.me));
 
   router.get("/users", asyncHandler(controller.listUsers));
   router.get("/users/:id", asyncHandler(controller.getUser));

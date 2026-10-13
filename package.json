@@ -11,7 +11,8 @@
     "typeorm": "tsx ./node_modules/typeorm/cli.js",
     "migration:generate": "npm run typeorm -- migration:generate -d src/infrastructure/database/data-source.ts",
     "migration:run": "npm run typeorm -- migration:run -d src/infrastructure/database/data-source.ts",
-    "migration:revert": "npm run typeorm -- migration:revert -d src/infrastructure/database/data-source.ts"
+    "migration:revert": "npm run typeorm -- migration:revert -d src/infrastructure/database/data-source.ts",
+    "seed:admins": "tsx src/scripts/seed-admins.ts"
   },
   "engines": {
     "node": "24.x"

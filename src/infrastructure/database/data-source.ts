@@ -8,6 +8,7 @@ import { StoreEventOrmEntity } from "./entities/store-event.orm-entity";
 import { AffiliateOrmEntity } from "./entities/affiliate.orm-entity";
 import { AffiliateInviteOrmEntity } from "./entities/affiliate-invite.orm-entity";
 import { PasswordResetOrmEntity } from "./entities/password-reset.orm-entity";
+import { AdminOrmEntity } from "./entities/admin.orm-entity";
 
 export const AppDataSource = new DataSource({
   type: "postgres",
@@ -24,6 +25,7 @@ export const AppDataSource = new DataSource({
     AffiliateOrmEntity,
     AffiliateInviteOrmEntity,
     PasswordResetOrmEntity,
+    AdminOrmEntity,
   ],
   /** `npm run migration:run` applies these — production never auto-syncs. */
   migrations: ["src/infrastructure/database/migrations/*.ts"],
